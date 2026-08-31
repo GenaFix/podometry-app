@@ -4,55 +4,66 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Holyiot Podometry</title>
-  <!-- Библиотека для 3D -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Библиотека для живых графиков IoT -->
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; }
-    #ui-top { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; border-bottom: 1px solid #333; z-index: 10; }
-    button { padding: 12px 20px; font-size: 16px; font-weight: bold; background: #0a84ff; color: white; border: none; border-radius: 8px; cursor: pointer; }
-    #value-display { font-size: 18px; font-weight: 600; color: #ff3b30; }
+    #ui-top { padding: 10px; background: #1a1a1a; z-index: 10; }
+    .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
+    button { flex: 1; padding: 12px 5px; font-size: 14px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    #btn-heel { background: #ff3b30; }
+    #btn-toe1 { background: #007aff; }
+    #btn-toe5 { background: #34c759; }
+    #values { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; padding: 0 10px; }
     #scene-container { flex: 1; position: relative; }
-    #chart-container { height: 35%; background: #1a1a1a; border-top: 2px solid #333; padding: 10px; display: flex; flex-direction: column; }
-    .chart-title { font-size: 14px; color: #aaa; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+    #chart-container { height: 35%; background: #1a1a1a; border-top: 2px solid #333; padding: 5px; display: flex; flex-direction: column; }
+    .chart-title { font-size: 12px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
     canvas { display: block; }
   </style>
 </head>
 <body>
 
-  <!-- Верхняя панель управления -->
   <div id="ui-top">
-    <button id="connect">Подключить датчик</button>
-    <div id="value-display">FSR: 0</div>
+    <div class="btn-group">
+      <button id="btn-heel">Пятка</button>
+      <button id="btn-toe1">Плюсна 1</button>
+      <button id="btn-toe5">Плюсна 5</button>
+    </div>
+    <div id="values">
+      <span style="color: #ff3b30;">Пятка: <span id="val-heel">0</span></span>
+      <span style="color: #007aff;">Плюсна 1: <span id="val-toe1">0</span></span>
+      <span style="color: #34c759;">Плюсна 5: <span id="val-toe5">0</span></span>
+    </div>
   </div>
 
-  <!-- Окно для 3D модели (Наклон стопы) -->
   <div id="scene-container"></div>
 
-  <!-- Окно для графика давления (Зоны опоры) -->
   <div id="chart-container">
-    <div class="chart-title">График давления (Правая стопа)</div>
+    <div class="chart-title">График зон опоры (Правая стопа)</div>
     <canvas id="pressure-chart"></canvas>
   </div>
 
   <script>
     // --- НАСТРОЙКА ЖИВОГО ГРАФИКА ---
     const canvas = document.getElementById('pressure-chart');
-    canvas.width = window.innerWidth - 20; // Адаптация под экран iPhone
-    canvas.height = document.getElementById('chart-container').clientHeight - 30;
+    canvas.width = window.innerWidth - 10;
+    canvas.height = document.getElementById('chart-container').clientHeight - 20;
 
     const chart = new SmoothieChart({
-      millisPerPixel: 15, // Скорость прокрутки графика
+      millisPerPixel: 15, 
       grid: { fillStyle: '#1a1a1a', strokeStyle: '#333', lineWidth: 1, borderVisible: false },
       labels: { fillStyle: '#ffffff', fontSize: 12 },
-      maxValueScale: 1.2, // Автоматическое масштабирование по высоте
-      minValue: 0
+      maxValueScale: 1.2, minValue: 0
     });
     
-    // Создаем линию для текущего датчика (в будущем их будет 3)
-    const fsrLine = new TimeSeries();
-    chart.addTimeSeries(fsrLine, { strokeStyle: '#ff3b30', lineWidth: 3, fillStyle: 'rgba(255, 59, 48, 0.2)' });
+    // Создаем три линии для трех зон
+    const lineHeel = new TimeSeries();
+    const lineToe1 = new TimeSeries();
+    const lineToe5 = new TimeSeries();
+    
+    chart.addTimeSeries(lineHeel, { strokeStyle: '#ff3b30', lineWidth: 3 });
+    chart.addTimeSeries(lineToe1, { strokeStyle: '#007aff', lineWidth: 3 });
+    chart.addTimeSeries(lineToe5, { strokeStyle: '#34c759', lineWidth: 3 });
     chart.streamTo(canvas, 0);
 
     // --- НАСТРОЙКА 3D СЦЕНЫ ---
@@ -63,9 +74,8 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Временная модель стопы (блок)
     const geometry = new THREE.BoxGeometry(2, 0.5, 4);
-    const material = new THREE.MeshLambertMaterial({ color: 0x34c759 });
+    const material = new THREE.MeshLambertMaterial({ color: 0x666666 });
     const footModel = new THREE.Mesh(geometry, material);
     scene.add(footModel);
 
@@ -83,75 +93,75 @@
     }
     animate();
 
-    // Обработка изменения размера экрана
     window.addEventListener('resize', () => {
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
-      canvas.width = window.innerWidth - 20;
+      canvas.width = window.innerWidth - 10;
     });
 
-    // --- BLUETOOTH ЛОГИКА ---
+    // --- BLUETOOTH ЛОГИКА (МУЛЬТИ-ПОДКЛЮЧЕНИЕ) ---
     const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-    let buffer = "";
+    const buffers = {}; // Индивидуальные буферы для каждой платы
 
-    document.getElementById('connect').addEventListener('click', async () => {
-      try {
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: 'Holyiot' }],
-          optionalServices: [UART_SERVICE]
-        });
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService(UART_SERVICE);
-        const characteristic = await service.getCharacteristic(UART_TX);
-        
-        await characteristic.startNotifications();
-        characteristic.addEventListener('characteristicvaluechanged', handleData);
-        
-        const btn = document.getElementById('connect');
-        btn.innerText = "Подключено";
-        btn.style.background = "#34c759";
-      } catch (error) {
-        alert("Ошибка: " + error);
-      }
-    });
+    // Универсальная функция подключения
+    function setupSensor(btnId, targetName, fallbackName, timeSeries, labelId, isHeel) {
+      document.getElementById(btnId).addEventListener('click', async () => {
+        try {
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: targetName }, { namePrefix: fallbackName }],
+            optionalServices: [UART_SERVICE]
+          });
+          
+          const server = await device.gatt.connect();
+          const service = await server.getPrimaryService(UART_SERVICE);
+          const characteristic = await service.getCharacteristic(UART_TX);
+          
+          await characteristic.startNotifications();
+          
+          characteristic.addEventListener('characteristicvaluechanged', (event) => {
+            const id = device.id;
+            if (!buffers[id]) buffers[id] = "";
+            buffers[id] += new TextDecoder().decode(event.target.value);
+            
+            const lines = buffers[id].split('\n');
+            if (lines.length > 1) {
+              for (let i = 0; i < lines.length - 1; i++) {
+                const parts = lines[i].trim().split(',');
+                if (parts.length === 3) {
+                  const fsr = parseInt(parts[0]);
+                  const pitch = parseInt(parts[1]);
+                  const roll = parseInt(parts[2]);
+                  
+                  timeSeries.append(new Date().getTime(), fsr);
+                  document.getElementById(labelId).innerText = fsr;
 
-    function handleData(event) {
-      buffer += new TextDecoder().decode(event.target.value);
-      const lines = buffer.split('\n');
-      if (lines.length > 1) {
-        for (let i = 0; i < lines.length - 1; i++) {
-          processLine(lines[i].trim());
+                  if (isHeel) {
+                    footModel.rotation.x = pitch * (Math.PI / 180);
+                    footModel.rotation.z = roll * (Math.PI / 180);
+                  }
+                }
+              }
+              buffers[id] = lines[lines.length - 1];
+            }
+          });
+
+          // Меняем вид кнопки при успешном коннекте
+          const btn = document.getElementById(btnId);
+          btn.innerText = "OK";
+          btn.style.opacity = "0.5";
+        } catch (error) {
+          console.log("Ошибка: " + error);
         }
-        buffer = lines[lines.length - 1];
-      }
+      });
     }
 
-    function processLine(line) {
-      if(!line) return;
-      const parts = line.split(',');
-      if (parts.length === 3) {
-        const fsr = parseInt(parts[0]);
-        const pitch = parseInt(parts[1]);
-        const roll = parseInt(parts[2]);
-        
-        // 1. Добавляем точку на график давления
-        fsrLine.append(new Date().getTime(), fsr);
-        document.getElementById('value-display').innerText = `FSR: ${fsr}`;
-
-        // 2. Вращаем 3D-модель (перевод из градусов в радианы)
-        footModel.rotation.x = pitch * (Math.PI / 180);
-        footModel.rotation.z = roll * (Math.PI / 180);
-
-        // Изменение цвета 3D модели при давлении
-        if (fsr > 50) {
-            footModel.material.color.setHex(0xff3b30);
-        } else {
-            footModel.material.color.setHex(0x34c759);
-        }
-      }
-    }
+    // Привязываем кнопки к именам плат. 
+    // Кнопка "Пятка" ищет плату FSR_Heel, но пустит и вашу текущую Holyiot.
+    setupSensor('btn-heel', 'FSR_Heel', 'Holyiot', lineHeel, 'val-heel', true);
+    setupSensor('btn-toe1', 'FSR_Toe1', 'FSR_Toe1', lineToe1, 'val-toe1', false);
+    setupSensor('btn-toe5', 'FSR_Toe5', 'FSR_Toe5', lineToe5, 'val-toe5', false);
   </script>
 </body>
 </html>
