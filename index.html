@@ -8,35 +8,54 @@
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; }
-    #ui-top { padding: 10px; background: #1a1a1a; z-index: 10; }
+    
+    /* Верхняя панель подключения */
+    #ui-top { padding: 10px; background: #1a1a1a; z-index: 10; flex-shrink: 0; }
     .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    button { flex: 1; padding: 12px 5px; font-size: 14px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .conn-btn { flex: 1; padding: 12px 5px; font-size: 14px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; }
     #btn-heel { background: #ff3b30; }
     #btn-toe1 { background: #007aff; }
     #btn-toe5 { background: #34c759; }
-    #values { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; padding: 0 10px; }
-    #scene-container { flex: 1; position: relative; }
-    #chart-container { height: 35%; background: #1a1a1a; border-top: 2px solid #333; padding: 5px; display: flex; flex-direction: column; }
-    .chart-title { font-size: 12px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
-    canvas { display: block; }
+    #values { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; padding: 0 5px; }
+
+    /* Окно 3D модели */
+    #scene-container { flex: 1; position: relative; min-height: 25vh; }
+
+    /* НОВЫЙ БЛОК: Панель плеера и записи */
+    #player-panel { background: #222; padding: 12px 15px; border-top: 1px solid #333; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    #btn-record { background: #ff3b30; color: white; border: none; border-radius: 20px; padding: 8px 15px; font-weight: bold; font-size: 14px; cursor: pointer; }
+    #timeline { flex: 1; accent-color: #0a84ff; }
+    #time-display { font-size: 12px; color: #aaa; font-variant-numeric: tabular-nums; }
+
+    /* Окно графиков */
+    #chart-container { height: 35vh; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; flex-shrink: 0; }
+    .chart-title { font-size: 11px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
+    canvas { display: block; width: 100%; height: 100%; }
   </style>
 </head>
 <body>
 
   <div id="ui-top">
     <div class="btn-group">
-      <button id="btn-heel">Пятка</button>
-      <button id="btn-toe1">Плюсна 1</button>
-      <button id="btn-toe5">Плюсна 5</button>
+      <button id="btn-heel" class="conn-btn">Пятка</button>
+      <button id="btn-toe1" class="conn-btn">Плюсна 1</button>
+      <button id="btn-toe5" class="conn-btn">Плюсна 5</button>
     </div>
     <div id="values">
       <span style="color: #ff3b30;">Пятка: <span id="val-heel">0</span></span>
-      <span style="color: #007aff;">Плюсна 1: <span id="val-toe1">0</span></span>
-      <span style="color: #34c759;">Плюсна 5: <span id="val-toe5">0</span></span>
+      <span style="color: #007aff;">Пл.1: <span id="val-toe1">0</span></span>
+      <span style="color: #34c759;">Пл.5: <span id="val-toe5">0</span></span>
     </div>
   </div>
 
   <div id="scene-container"></div>
+
+  <!-- ВИЗУАЛЬНЫЙ БЛОК ПЛЕЕРА -->
+  <div id="player-panel">
+    <button id="btn-record">⏺ REC</button>
+    <input type="range" id="timeline" min="0" max="100" value="100">
+    <div id="time-display">00:00</div>
+  </div>
 
   <div id="chart-container">
     <div class="chart-title">График зон опоры (Правая стопа)</div>
@@ -44,11 +63,8 @@
   </div>
 
   <script>
-    // --- НАСТРОЙКА ЖИВОГО ГРАФИКА ---
+    // --- Настройка графиков ---
     const canvas = document.getElementById('pressure-chart');
-    canvas.width = window.innerWidth - 10;
-    canvas.height = document.getElementById('chart-container').clientHeight - 20;
-
     const chart = new SmoothieChart({
       millisPerPixel: 15, 
       grid: { fillStyle: '#1a1a1a', strokeStyle: '#333', lineWidth: 1, borderVisible: false },
@@ -56,7 +72,6 @@
       maxValueScale: 1.2, minValue: 0
     });
     
-    // Создаем три линии для трех зон
     const lineHeel = new TimeSeries();
     const lineToe1 = new TimeSeries();
     const lineToe5 = new TimeSeries();
@@ -66,24 +81,31 @@
     chart.addTimeSeries(lineToe5, { strokeStyle: '#34c759', lineWidth: 3 });
     chart.streamTo(canvas, 0);
 
-    // --- НАСТРОЙКА 3D СЦЕНЫ ---
+    // --- Настройка 3D ---
     const container = document.getElementById('scene-container');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    
+    function resize() {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      canvas.width = document.getElementById('chart-container').clientWidth - 10;
+      canvas.height = document.getElementById('chart-container').clientHeight - 20;
+    }
+    
     container.appendChild(renderer.domElement);
-
-    const geometry = new THREE.BoxGeometry(2, 0.5, 4);
-    const material = new THREE.MeshLambertMaterial({ color: 0x666666 });
-    const footModel = new THREE.Mesh(geometry, material);
+    const footModel = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 4), new THREE.MeshLambertMaterial({ color: 0x666666 }));
     scene.add(footModel);
-
+    
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(5, 10, 5);
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x606060));
-
+    
     camera.position.set(0, 5, 7);
     camera.lookAt(0, 0, 0);
 
@@ -92,20 +114,29 @@
       renderer.render(scene, camera);
     }
     animate();
+    
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 100); // Принудительный ресайз при старте
 
-    window.addEventListener('resize', () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      canvas.width = window.innerWidth - 10;
+    // --- Демо-логика кнопки записи ---
+    let isRecording = false;
+    document.getElementById('btn-record').addEventListener('click', (e) => {
+      isRecording = !isRecording;
+      if (isRecording) {
+        e.target.innerText = "⏹ STOP";
+        e.target.style.background = "#8e8e93";
+      } else {
+        e.target.innerText = "▶ PLAY";
+        e.target.style.background = "#34c759";
+        alert("Здесь будет запускаться режим воспроизведения (Slow Motion)");
+      }
     });
 
-    // --- BLUETOOTH ЛОГИКА (МУЛЬТИ-ПОДКЛЮЧЕНИЕ) ---
+    // --- Bluetooth ---
     const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-    const buffers = {}; // Индивидуальные буферы для каждой платы
+    const buffers = {}; 
 
-    // Универсальная функция подключения
     function setupSensor(btnId, targetName, fallbackName, timeSeries, labelId, isHeel) {
       document.getElementById(btnId).addEventListener('click', async () => {
         try {
@@ -113,18 +144,15 @@
             filters: [{ namePrefix: targetName }, { namePrefix: fallbackName }],
             optionalServices: [UART_SERVICE]
           });
-          
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService(UART_SERVICE);
           const characteristic = await service.getCharacteristic(UART_TX);
-          
           await characteristic.startNotifications();
           
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const id = device.id;
             if (!buffers[id]) buffers[id] = "";
             buffers[id] += new TextDecoder().decode(event.target.value);
-            
             const lines = buffers[id].split('\n');
             if (lines.length > 1) {
               for (let i = 0; i < lines.length - 1; i++) {
@@ -146,19 +174,11 @@
               buffers[id] = lines[lines.length - 1];
             }
           });
-
-          // Меняем вид кнопки при успешном коннекте
-          const btn = document.getElementById(btnId);
-          btn.innerText = "OK";
-          btn.style.opacity = "0.5";
-        } catch (error) {
-          console.log("Ошибка: " + error);
-        }
+          document.getElementById(btnId).style.opacity = "0.5";
+        } catch (error) { console.log(error); }
       });
     }
 
-    // Привязываем кнопки к именам плат. 
-    // Кнопка "Пятка" ищет плату FSR_Heel, но пустит и вашу текущую Holyiot.
     setupSensor('btn-heel', 'FSR_Heel', 'Holyiot', lineHeel, 'val-heel', true);
     setupSensor('btn-toe1', 'FSR_Toe1', 'FSR_Toe1', lineToe1, 'val-toe1', false);
     setupSensor('btn-toe5', 'FSR_Toe5', 'FSR_Toe5', lineToe5, 'val-toe5', false);
