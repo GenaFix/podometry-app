@@ -3,145 +3,128 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Holyiot Podometry</title>
+  <title>Holyiot Podometry Pro</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.min.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+    body { margin: 0; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
     
-    /* Верхняя панель подключения */
-    #ui-top { padding: 10px; background: #1a1a1a; z-index: 10; flex-shrink: 0; }
-    .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    .conn-btn { flex: 1; padding: 12px 5px; font-size: 14px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; }
-    #btn-heel { background: #ff3b30; }
-    #btn-toe1 { background: #007aff; }
-    #btn-toe5 { background: #34c759; }
-    #values { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; padding: 0 5px; }
-
-    /* Окно 3D модели */
-    #scene-container { flex: 1; position: relative; min-height: 25vh; }
-
-    /* НОВЫЙ БЛОК: Панель плеера и записи */
-    #player-panel { background: #222; padding: 12px 15px; border-top: 1px solid #333; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    #btn-record { background: #ff3b30; color: white; border: none; border-radius: 20px; padding: 8px 15px; font-weight: bold; font-size: 14px; cursor: pointer; }
-    #timeline { flex: 1; accent-color: #0a84ff; }
-    #time-display { font-size: 12px; color: #aaa; font-variant-numeric: tabular-nums; }
-
-    /* Окно графиков */
-    #chart-container { height: 35vh; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; flex-shrink: 0; }
-    .chart-title { font-size: 11px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
+    /* Панель кнопок */
+    .foot-panel { padding: 5px 10px; background: #1a1a1a; border-bottom: 1px solid #333; }
+    .panel-title { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 5px; text-transform: uppercase; }
+    .btn-group { display: flex; gap: 5px; }
+    .conn-btn { flex: 1; padding: 10px 2px; font-size: 12px; font-weight: bold; color: white; border: none; border-radius: 6px; cursor: pointer; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    
+    /* Цвета кнопок */
+    .btn-red { background: #ff3b30; }
+    .btn-yellow { background: #ffcc00; color: #000; text-shadow: none; }
+    .btn-blue { background: #007aff; }
+    
+    /* Графики */
+    .chart-container { flex: 1; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; border-bottom: 2px solid #333; }
+    .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
     canvas { display: block; width: 100%; height: 100%; }
+    
+    /* Значения над графиками */
+    .val-red { color: #ff3b30; font-weight: bold; }
+    .val-yellow { color: #ffcc00; font-weight: bold; }
+    .val-blue { color: #007aff; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <div id="ui-top">
+  <!-- ЛЕВАЯ СТОПА (Управление) -->
+  <div class="foot-panel">
+    <div class="panel-title">Левая стопа (Left)</div>
     <div class="btn-group">
-      <button id="btn-heel" class="conn-btn">Пятка</button>
-      <button id="btn-toe1" class="conn-btn">Плюсна 1</button>
-      <button id="btn-toe5" class="conn-btn">Плюсна 5</button>
-    </div>
-    <div id="values">
-      <span style="color: #ff3b30;">Пятка: <span id="val-heel">0</span></span>
-      <span style="color: #007aff;">Пл.1: <span id="val-toe1">0</span></span>
-      <span style="color: #34c759;">Пл.5: <span id="val-toe5">0</span></span>
+      <button id="btn-l-red" class="conn-btn btn-red">Пятка</button>
+      <button id="btn-l-yellow" class="conn-btn btn-yellow">Плюсна 1</button>
+      <button id="btn-l-blue" class="conn-btn btn-blue">Плюсна 5</button>
     </div>
   </div>
 
-  <div id="scene-container"></div>
-
-  <!-- ВИЗУАЛЬНЫЙ БЛОК ПЛЕЕРА -->
-  <div id="player-panel">
-    <button id="btn-record">⏺ REC</button>
-    <input type="range" id="timeline" min="0" max="100" value="100">
-    <div id="time-display">00:00</div>
+  <!-- ЛЕВАЯ СТОПА (График) -->
+  <div class="chart-container">
+    <div class="chart-header">
+      <span>График Левой</span>
+      <div>
+         <span class="val-red" id="val-l-red">0</span> | 
+         <span class="val-yellow" id="val-l-yellow">0</span> | 
+         <span class="val-blue" id="val-l-blue">0</span>
+      </div>
+    </div>
+    <canvas id="chart-left"></canvas>
   </div>
 
-  <div id="chart-container">
-    <div class="chart-title">График зон опоры (Правая стопа)</div>
-    <canvas id="pressure-chart"></canvas>
+  <!-- ПРАВАЯ СТОПА (Управление) -->
+  <div class="foot-panel">
+    <div class="panel-title">Правая стопа (Right)</div>
+    <div class="btn-group">
+      <button id="btn-r-red" class="conn-btn btn-red">Пятка</button>
+      <button id="btn-r-yellow" class="conn-btn btn-yellow">Плюсна 1</button>
+      <button id="btn-r-blue" class="conn-btn btn-blue">Плюсна 5</button>
+    </div>
+  </div>
+
+  <!-- ПРАВАЯ СТОПА (График) -->
+  <div class="chart-container" style="border-bottom: none;">
+    <div class="chart-header">
+      <span>График Правой</span>
+      <div>
+         <span class="val-red" id="val-r-red">0</span> | 
+         <span class="val-yellow" id="val-r-yellow">0</span> | 
+         <span class="val-blue" id="val-r-blue">0</span>
+      </div>
+    </div>
+    <canvas id="chart-right"></canvas>
   </div>
 
   <script>
     // --- Настройка графиков ---
-    const canvas = document.getElementById('pressure-chart');
-    const chart = new SmoothieChart({
-      millisPerPixel: 15, 
-      grid: { fillStyle: '#1a1a1a', strokeStyle: '#333', lineWidth: 1, borderVisible: false },
-      labels: { fillStyle: '#ffffff', fontSize: 12 },
-      maxValueScale: 1.2, minValue: 0
-    });
-    
-    const lineHeel = new TimeSeries();
-    const lineToe1 = new TimeSeries();
-    const lineToe5 = new TimeSeries();
-    
-    chart.addTimeSeries(lineHeel, { strokeStyle: '#ff3b30', lineWidth: 3 });
-    chart.addTimeSeries(lineToe1, { strokeStyle: '#007aff', lineWidth: 3 });
-    chart.addTimeSeries(lineToe5, { strokeStyle: '#34c759', lineWidth: 3 });
-    chart.streamTo(canvas, 0);
+    function createChart(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const chart = new SmoothieChart({
+        millisPerPixel: 15, 
+        grid: { fillStyle: '#1a1a1a', strokeStyle: '#333', lineWidth: 1, borderVisible: false },
+        labels: { fillStyle: '#ffffff', fontSize: 10 },
+        maxValueScale: 1.2, minValue: 0
+      });
+      
+      const lineRed = new TimeSeries();
+      const lineYellow = new TimeSeries();
+      const lineBlue = new TimeSeries();
+      
+      chart.addTimeSeries(lineRed, { strokeStyle: '#ff3b30', lineWidth: 3 });
+      chart.addTimeSeries(lineYellow, { strokeStyle: '#ffcc00', lineWidth: 3 });
+      chart.addTimeSeries(lineBlue, { strokeStyle: '#007aff', lineWidth: 3 });
+      
+      chart.streamTo(canvas, 0);
+      return { lineRed, lineYellow, lineBlue, canvas };
+    }
 
-    // --- Настройка 3D ---
-    const container = document.getElementById('scene-container');
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    
+    const chartLeft = createChart('chart-left');
+    const chartRight = createChart('chart-right');
+
     function resize() {
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-      canvas.width = document.getElementById('chart-container').clientWidth - 10;
-      canvas.height = document.getElementById('chart-container').clientHeight - 20;
+      chartLeft.canvas.width = chartLeft.canvas.parentElement.clientWidth;
+      chartLeft.canvas.height = chartLeft.canvas.parentElement.clientHeight - 20;
+      chartRight.canvas.width = chartRight.canvas.parentElement.clientWidth;
+      chartRight.canvas.height = chartRight.canvas.parentElement.clientHeight - 20;
     }
-    
-    container.appendChild(renderer.domElement);
-    const footModel = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 4), new THREE.MeshLambertMaterial({ color: 0x666666 }));
-    scene.add(footModel);
-    
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 10, 5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x606060));
-    
-    camera.position.set(0, 5, 7);
-    camera.lookAt(0, 0, 0);
-
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
-    animate();
-    
     window.addEventListener('resize', resize);
-    setTimeout(resize, 100); // Принудительный ресайз при старте
+    setTimeout(resize, 100);
 
-    // --- Демо-логика кнопки записи ---
-    let isRecording = false;
-    document.getElementById('btn-record').addEventListener('click', (e) => {
-      isRecording = !isRecording;
-      if (isRecording) {
-        e.target.innerText = "⏹ STOP";
-        e.target.style.background = "#8e8e93";
-      } else {
-        e.target.innerText = "▶ PLAY";
-        e.target.style.background = "#34c759";
-        alert("Здесь будет запускаться режим воспроизведения (Slow Motion)");
-      }
-    });
-
-    // --- Bluetooth ---
+    // --- Bluetooth Логика ---
     const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
     const buffers = {}; 
 
-    function setupSensor(btnId, targetName, fallbackName, timeSeries, labelId, isHeel) {
+    function setupSensor(btnId, targetName, timeSeries, labelId) {
       document.getElementById(btnId).addEventListener('click', async () => {
         try {
           const device = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: targetName }, { namePrefix: fallbackName }],
+            // ЗДЕСЬ САМОЕ ГЛАВНОЕ: Ищем строго нужное имя (R_Red, L_Yellow и т.д.)
+            filters: [{ namePrefix: targetName }],
             optionalServices: [UART_SERVICE]
           });
           const server = await device.gatt.connect();
@@ -159,29 +142,29 @@
                 const parts = lines[i].trim().split(',');
                 if (parts.length === 3) {
                   const fsr = parseInt(parts[0]);
-                  const pitch = parseInt(parts[1]);
-                  const roll = parseInt(parts[2]);
-                  
                   timeSeries.append(new Date().getTime(), fsr);
                   document.getElementById(labelId).innerText = fsr;
-
-                  if (isHeel) {
-                    footModel.rotation.x = pitch * (Math.PI / 180);
-                    footModel.rotation.z = roll * (Math.PI / 180);
-                  }
                 }
               }
               buffers[id] = lines[lines.length - 1];
             }
           });
-          document.getElementById(btnId).style.opacity = "0.5";
+          
+          const btn = document.getElementById(btnId);
+          btn.innerText = "OK";
+          btn.style.opacity = "0.4";
         } catch (error) { console.log(error); }
       });
     }
 
-    setupSensor('btn-heel', 'FSR_Heel', 'Holyiot', lineHeel, 'val-heel', true);
-    setupSensor('btn-toe1', 'FSR_Toe1', 'FSR_Toe1', lineToe1, 'val-toe1', false);
-    setupSensor('btn-toe5', 'FSR_Toe5', 'FSR_Toe5', lineToe5, 'val-toe5', false);
+    // Привязываем кнопки к новым именам датчиков
+    setupSensor('btn-l-red', 'L_Red', chartLeft.lineRed, 'val-l-red');
+    setupSensor('btn-l-yellow', 'L_Yellow', chartLeft.lineYellow, 'val-l-yellow');
+    setupSensor('btn-l-blue', 'L_Blue', chartLeft.lineBlue, 'val-l-blue');
+
+    setupSensor('btn-r-red', 'R_Red', chartRight.lineRed, 'val-r-red');
+    setupSensor('btn-r-yellow', 'R_Yellow', chartRight.lineYellow, 'val-r-yellow');
+    setupSensor('btn-r-blue', 'R_Blue', chartRight.lineBlue, 'val-r-blue');
   </script>
 </body>
 </html>
