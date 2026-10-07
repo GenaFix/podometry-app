@@ -8,18 +8,25 @@
   <style>
     body { margin: 0; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
     
-    /* Топология стоп */
-    #topology-container { display: flex; justify-content: space-around; padding: 20px 10px; background: #1a1a1a; flex-shrink: 0; border-bottom: 2px solid #333; }
-    .foot-map { display: flex; flex-direction: column; align-items: center; width: 45%; background: #222; border-radius: 40px; padding: 20px 10px; box-sizing: border-box; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); }
-    .foot-label { font-size: 14px; color: #aaa; margin-bottom: 25px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+    /* Верхняя панель управления */
+    #top-bar { display: flex; justify-content: center; align-items: center; padding: 10px; background: #222; border-bottom: 2px solid #333; position: relative;}
+    #btn-calibrate { background: #34c759; color: black; border: none; padding: 8px 20px; font-weight: bold; border-radius: 8px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
+    #btn-calibrate:active { transform: scale(0.95); }
     
-    .toes-row { display: flex; justify-content: space-between; width: 90%; margin-bottom: 40px; }
+    /* Предупреждение о гироскопах */
+    #swap-warning { display: none; position: absolute; top: 50px; left: 10%; right: 10%; background: #ff3b30; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; z-index: 100; box-shadow: 0 4px 10px rgba(255,59,48,0.4); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+    /* Топология стоп */
+    #topology-container { display: flex; justify-content: space-around; padding: 15px 10px; background: #1a1a1a; flex-shrink: 0; border-bottom: 2px solid #333; }
+    .foot-map { display: flex; flex-direction: column; align-items: center; width: 45%; background: #2a2a2a; border-radius: 30px; padding: 15px 10px; box-sizing: border-box; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+    .foot-label { font-size: 12px; color: #aaa; margin-bottom: 15px; font-weight: bold; text-transform: uppercase; }
+    
+    .toes-row { display: flex; justify-content: space-between; width: 90%; margin-bottom: 30px; }
     .heel-row { display: flex; justify-content: center; width: 100%; }
     
-    /* Интерактивные точки (Датчики) */
-    .sensor-node { width: 50px; height: 50px; border-radius: 25px; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; color: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transition: transform 0.1s; }
-    .sensor-node:active { transform: scale(0.9); }
-    .sensor-node.connected { opacity: 0.3; box-shadow: none; color: #fff; }
+    .sensor-node { width: 45px; height: 45px; border-radius: 22px; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 10px; font-weight: bold; color: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+    .sensor-node.connected { opacity: 0.3; box-shadow: none; color: #fff; border: 2px solid #fff;}
     
     .node-red { background: #ff3b30; color: white; }
     .node-yellow { background: #ffcc00; }
@@ -27,7 +34,7 @@
 
     /* Графики */
     .charts-wrapper { display: flex; flex-direction: column; flex: 1; }
-    .chart-box { flex: 1; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; border-bottom: 1px solid #333; }
+    .chart-box { flex: 1; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; border-bottom: 1px solid #333; position: relative;}
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
     canvas { display: block; width: 100%; height: 100%; }
     
@@ -38,14 +45,17 @@
 </head>
 <body>
 
-  <!-- БЛОК ТОПОЛОГИИ (Карта датчиков) -->
+  <div id="top-bar">
+    <button id="btn-calibrate">СТАРТ КАЛИБРОВКИ (ТАРА)</button>
+  </div>
+  
+  <div id="swap-warning">⚠️ ОШИБКА: ДАТЧИКИ ПЕРЕПУТАНЫ! (Проверьте левую/правую ногу)</div>
+
   <div id="topology-container">
-    
     <!-- Левая Стопа -->
     <div class="foot-map">
       <div class="foot-label">Левая (Left)</div>
       <div class="toes-row">
-        <!-- У левой ноги мизинец (Синий) слева, большой палец (Желтый) справа -->
         <button id="btn-l-blue" class="sensor-node node-blue">L_Blu</button>
         <button id="btn-l-yellow" class="sensor-node node-yellow">L_Yel</button>
       </div>
@@ -53,12 +63,10 @@
         <button id="btn-l-red" class="sensor-node node-red">L_Red</button>
       </div>
     </div>
-
     <!-- Правая Стопа -->
     <div class="foot-map">
       <div class="foot-label">Правая (Right)</div>
       <div class="toes-row">
-        <!-- У правой ноги большой палец (Желтый) слева, мизинец (Синий) справа -->
         <button id="btn-r-yellow" class="sensor-node node-yellow">R_Yel</button>
         <button id="btn-r-blue" class="sensor-node node-blue">R_Blu</button>
       </div>
@@ -66,22 +74,19 @@
         <button id="btn-r-red" class="sensor-node node-red">R_Red</button>
       </div>
     </div>
-
   </div>
 
-  <!-- БЛОК ГРАФИКОВ -->
   <div class="charts-wrapper">
     <div class="chart-box">
       <div class="chart-header">
-        <span>Давление Левая</span>
+        <span>Левая (% от веса)</span>
         <div><span class="val-red" id="val-l-red">0</span> | <span class="val-yellow" id="val-l-yellow">0</span> | <span class="val-blue" id="val-l-blue">0</span></div>
       </div>
       <canvas id="chart-left"></canvas>
     </div>
-
     <div class="chart-box" style="border-bottom: none;">
       <div class="chart-header">
-        <span>Давление Правая</span>
+        <span>Правая (% от веса)</span>
         <div><span class="val-red" id="val-r-red">0</span> | <span class="val-yellow" id="val-r-yellow">0</span> | <span class="val-blue" id="val-r-blue">0</span></div>
       </div>
       <canvas id="chart-right"></canvas>
@@ -89,6 +94,41 @@
   </div>
 
   <script>
+    // --- Глобальные переменные для калибровки и гироскопа ---
+    const sensorState = {
+      'L_Red': {fsr: 0, pitch: 0}, 'L_Yel': {fsr: 0, pitch: 0}, 'L_Blu': {fsr: 0, pitch: 0},
+      'R_Red': {fsr: 0, pitch: 0}, 'R_Yel': {fsr: 0, pitch: 0}, 'R_Blu': {fsr: 0, pitch: 0}
+    };
+    const calibBase = { 'L_Red': 1, 'L_Yel': 1, 'L_Blu': 1, 'R_Red': 1, 'R_Yel': 1, 'R_Blu': 1 };
+    let isCalibrated = false;
+
+    // --- Логика Калибровки ---
+    document.getElementById('btn-calibrate').addEventListener('click', () => {
+      for (const [key, data] of Object.entries(sensorState)) {
+        calibBase[key] = data.fsr > 5 ? data.fsr : 1; // Защита от деления на ноль
+      }
+      isCalibrated = true;
+      document.getElementById('btn-calibrate').style.background = '#ffcc00';
+      document.getElementById('btn-calibrate').innerText = 'ОТКАЛИБРОВАНО (100%)';
+    });
+
+    // --- Система "Анти-Дурак" (Анализ углов) ---
+    setInterval(() => {
+      // Сравниваем углы между пяткой и первой плюсной на каждой ноге
+      let leftDiff = Math.abs(sensorState['L_Red'].pitch - sensorState['L_Yel'].pitch);
+      let rightDiff = Math.abs(sensorState['R_Red'].pitch - sensorState['R_Yel'].pitch);
+      
+      // Если расхождение больше 30 градусов (стопа физически не может так изогнуться)
+      let lActive = sensorState['L_Red'].pitch !== 0 && sensorState['L_Yel'].pitch !== 0;
+      let rActive = sensorState['R_Red'].pitch !== 0 && sensorState['R_Yel'].pitch !== 0;
+
+      if ((leftDiff > 30 && lActive) || (rightDiff > 30 && rActive)) {
+        document.getElementById('swap-warning').style.display = 'block';
+      } else {
+        document.getElementById('swap-warning').style.display = 'none';
+      }
+    }, 1000); // Проверка каждую секунду
+
     // --- Настройка графиков ---
     function createChart(canvasId) {
       const canvas = document.getElementById(canvasId);
@@ -98,15 +138,10 @@
         labels: { fillStyle: '#ffffff', fontSize: 10 },
         maxValueScale: 1.2, minValue: 0
       });
-      
-      const lineRed = new TimeSeries();
-      const lineYellow = new TimeSeries();
-      const lineBlue = new TimeSeries();
-      
+      const lineRed = new TimeSeries(); const lineYellow = new TimeSeries(); const lineBlue = new TimeSeries();
       chart.addTimeSeries(lineRed, { strokeStyle: '#ff3b30', lineWidth: 3 });
       chart.addTimeSeries(lineYellow, { strokeStyle: '#ffcc00', lineWidth: 3 });
       chart.addTimeSeries(lineBlue, { strokeStyle: '#007aff', lineWidth: 3 });
-      
       chart.streamTo(canvas, 0);
       return { lineRed, lineYellow, lineBlue, canvas };
     }
@@ -115,26 +150,19 @@
     const chartRight = createChart('chart-right');
 
     function resize() {
-      chartLeft.canvas.width = chartLeft.canvas.parentElement.clientWidth;
-      chartLeft.canvas.height = chartLeft.canvas.parentElement.clientHeight - 20;
-      chartRight.canvas.width = chartRight.canvas.parentElement.clientWidth;
-      chartRight.canvas.height = chartRight.canvas.parentElement.clientHeight - 20;
+      chartLeft.canvas.width = chartLeft.canvas.parentElement.clientWidth; chartLeft.canvas.height = chartLeft.canvas.parentElement.clientHeight - 20;
+      chartRight.canvas.width = chartRight.canvas.parentElement.clientWidth; chartRight.canvas.height = chartRight.canvas.parentElement.clientHeight - 20;
     }
-    window.addEventListener('resize', resize);
-    setTimeout(resize, 100);
+    window.addEventListener('resize', resize); setTimeout(resize, 100);
 
     // --- Bluetooth Логика ---
-    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-    const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
     const buffers = {}; 
 
     function setupSensor(btnId, targetName, timeSeries, labelId) {
       document.getElementById(btnId).addEventListener('click', async () => {
         try {
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: targetName }],
-            optionalServices: [UART_SERVICE]
-          });
+          const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: targetName }], optionalServices: [UART_SERVICE] });
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService(UART_SERVICE);
           const characteristic = await service.getCharacteristic(UART_TX);
@@ -149,29 +177,35 @@
               for (let i = 0; i < lines.length - 1; i++) {
                 const parts = lines[i].trim().split(',');
                 if (parts.length === 3) {
-                  const fsr = parseInt(parts[0]);
-                  timeSeries.append(new Date().getTime(), fsr);
-                  document.getElementById(labelId).innerText = fsr;
+                  // Читаем все данные: Давление и Углы
+                  const rawFsr = parseInt(parts[0]);
+                  const pitch = parseInt(parts[1]);
+                  
+                  // Сохраняем в глобальный массив для проверки гироскопа
+                  sensorState[targetName].fsr = rawFsr;
+                  sensorState[targetName].pitch = pitch;
+
+                  // Математика калибровки
+                  let displayValue = rawFsr;
+                  if (isCalibrated) {
+                    displayValue = (rawFsr / calibBase[targetName]) * 100; 
+                  }
+                  
+                  timeSeries.append(new Date().getTime(), displayValue);
+                  document.getElementById(labelId).innerText = Math.round(displayValue);
                 }
               }
               buffers[id] = lines[lines.length - 1];
             }
           });
-          
-          // Визуальное подтверждение подключения
-          const btn = document.getElementById(btnId);
-          btn.innerText = "OK";
-          btn.classList.add("connected");
+          const btn = document.getElementById(btnId); btn.innerText = "OK"; btn.classList.add("connected");
         } catch (error) { console.log(error); }
       });
     }
 
-    // Левая нога
     setupSensor('btn-l-red', 'L_Red', chartLeft.lineRed, 'val-l-red');
     setupSensor('btn-l-yellow', 'L_Yel', chartLeft.lineYellow, 'val-l-yellow');
     setupSensor('btn-l-blue', 'L_Blu', chartLeft.lineBlue, 'val-l-blue');
-
-    // Правая нога
     setupSensor('btn-r-red', 'R_Red', chartRight.lineRed, 'val-r-red');
     setupSensor('btn-r-yellow', 'R_Yel', chartRight.lineYellow, 'val-r-yellow');
     setupSensor('btn-r-blue', 'R_Blu', chartRight.lineBlue, 'val-r-blue');
