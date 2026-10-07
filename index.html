@@ -4,28 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Holyiot Podometry Pro</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.min.js"></script>
   <style>
     body { margin: 0; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
     
-    /* Панель кнопок */
-    .foot-panel { padding: 5px 10px; background: #1a1a1a; border-bottom: 1px solid #333; }
-    .panel-title { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 5px; text-transform: uppercase; }
-    .btn-group { display: flex; gap: 5px; }
-    .conn-btn { flex: 1; padding: 10px 2px; font-size: 12px; font-weight: bold; color: white; border: none; border-radius: 6px; cursor: pointer; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    /* Топология стоп */
+    #topology-container { display: flex; justify-content: space-around; padding: 20px 10px; background: #1a1a1a; flex-shrink: 0; border-bottom: 2px solid #333; }
+    .foot-map { display: flex; flex-direction: column; align-items: center; width: 45%; background: #222; border-radius: 40px; padding: 20px 10px; box-sizing: border-box; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); }
+    .foot-label { font-size: 14px; color: #aaa; margin-bottom: 25px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
     
-    /* Цвета кнопок */
-    .btn-red { background: #ff3b30; }
-    .btn-yellow { background: #ffcc00; color: #000; text-shadow: none; }
-    .btn-blue { background: #007aff; }
+    .toes-row { display: flex; justify-content: space-between; width: 90%; margin-bottom: 40px; }
+    .heel-row { display: flex; justify-content: center; width: 100%; }
     
+    /* Интерактивные точки (Датчики) */
+    .sensor-node { width: 50px; height: 50px; border-radius: 25px; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; color: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transition: transform 0.1s; }
+    .sensor-node:active { transform: scale(0.9); }
+    .sensor-node.connected { opacity: 0.3; box-shadow: none; color: #fff; }
+    
+    .node-red { background: #ff3b30; color: white; }
+    .node-yellow { background: #ffcc00; }
+    .node-blue { background: #007aff; color: white; }
+
     /* Графики */
-    .chart-container { flex: 1; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; border-bottom: 2px solid #333; }
+    .charts-wrapper { display: flex; flex-direction: column; flex: 1; }
+    .chart-box { flex: 1; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; border-bottom: 1px solid #333; }
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
     canvas { display: block; width: 100%; height: 100%; }
     
-    /* Значения над графиками */
     .val-red { color: #ff3b30; font-weight: bold; }
     .val-yellow { color: #ffcc00; font-weight: bold; }
     .val-blue { color: #007aff; font-weight: bold; }
@@ -33,50 +38,54 @@
 </head>
 <body>
 
-  <!-- ЛЕВАЯ СТОПА (Управление) -->
-  <div class="foot-panel">
-    <div class="panel-title">Левая стопа (Left)</div>
-    <div class="btn-group">
-      <button id="btn-l-red" class="conn-btn btn-red">Пятка</button>
-      <button id="btn-l-yellow" class="conn-btn btn-yellow">Плюсна 1</button>
-      <button id="btn-l-blue" class="conn-btn btn-blue">Плюсна 5</button>
-    </div>
-  </div>
-
-  <!-- ЛЕВАЯ СТОПА (График) -->
-  <div class="chart-container">
-    <div class="chart-header">
-      <span>График Левой</span>
-      <div>
-         <span class="val-red" id="val-l-red">0</span> | 
-         <span class="val-yellow" id="val-l-yellow">0</span> | 
-         <span class="val-blue" id="val-l-blue">0</span>
+  <!-- БЛОК ТОПОЛОГИИ (Карта датчиков) -->
+  <div id="topology-container">
+    
+    <!-- Левая Стопа -->
+    <div class="foot-map">
+      <div class="foot-label">Левая (Left)</div>
+      <div class="toes-row">
+        <!-- У левой ноги мизинец (Синий) слева, большой палец (Желтый) справа -->
+        <button id="btn-l-blue" class="sensor-node node-blue">L_Blu</button>
+        <button id="btn-l-yellow" class="sensor-node node-yellow">L_Yel</button>
+      </div>
+      <div class="heel-row">
+        <button id="btn-l-red" class="sensor-node node-red">L_Red</button>
       </div>
     </div>
-    <canvas id="chart-left"></canvas>
-  </div>
 
-  <!-- ПРАВАЯ СТОПА (Управление) -->
-  <div class="foot-panel">
-    <div class="panel-title">Правая стопа (Right)</div>
-    <div class="btn-group">
-      <button id="btn-r-red" class="conn-btn btn-red">Пятка</button>
-      <button id="btn-r-yellow" class="conn-btn btn-yellow">Плюсна 1</button>
-      <button id="btn-r-blue" class="conn-btn btn-blue">Плюсна 5</button>
-    </div>
-  </div>
-
-  <!-- ПРАВАЯ СТОПА (График) -->
-  <div class="chart-container" style="border-bottom: none;">
-    <div class="chart-header">
-      <span>График Правой</span>
-      <div>
-         <span class="val-red" id="val-r-red">0</span> | 
-         <span class="val-yellow" id="val-r-yellow">0</span> | 
-         <span class="val-blue" id="val-r-blue">0</span>
+    <!-- Правая Стопа -->
+    <div class="foot-map">
+      <div class="foot-label">Правая (Right)</div>
+      <div class="toes-row">
+        <!-- У правой ноги большой палец (Желтый) слева, мизинец (Синий) справа -->
+        <button id="btn-r-yellow" class="sensor-node node-yellow">R_Yel</button>
+        <button id="btn-r-blue" class="sensor-node node-blue">R_Blu</button>
+      </div>
+      <div class="heel-row">
+        <button id="btn-r-red" class="sensor-node node-red">R_Red</button>
       </div>
     </div>
-    <canvas id="chart-right"></canvas>
+
+  </div>
+
+  <!-- БЛОК ГРАФИКОВ -->
+  <div class="charts-wrapper">
+    <div class="chart-box">
+      <div class="chart-header">
+        <span>Давление Левая</span>
+        <div><span class="val-red" id="val-l-red">0</span> | <span class="val-yellow" id="val-l-yellow">0</span> | <span class="val-blue" id="val-l-blue">0</span></div>
+      </div>
+      <canvas id="chart-left"></canvas>
+    </div>
+
+    <div class="chart-box" style="border-bottom: none;">
+      <div class="chart-header">
+        <span>Давление Правая</span>
+        <div><span class="val-red" id="val-r-red">0</span> | <span class="val-yellow" id="val-r-yellow">0</span> | <span class="val-blue" id="val-r-blue">0</span></div>
+      </div>
+      <canvas id="chart-right"></canvas>
+    </div>
   </div>
 
   <script>
@@ -123,7 +132,6 @@
       document.getElementById(btnId).addEventListener('click', async () => {
         try {
           const device = await navigator.bluetooth.requestDevice({
-            // ЗДЕСЬ САМОЕ ГЛАВНОЕ: Ищем строго нужное имя (R_Red, L_Yellow и т.д.)
             filters: [{ namePrefix: targetName }],
             optionalServices: [UART_SERVICE]
           });
@@ -150,18 +158,20 @@
             }
           });
           
+          // Визуальное подтверждение подключения
           const btn = document.getElementById(btnId);
           btn.innerText = "OK";
-          btn.style.opacity = "0.4";
+          btn.classList.add("connected");
         } catch (error) { console.log(error); }
       });
     }
 
-    // Привязываем кнопки к новым именам датчиков (максимум 5 символов)
+    // Левая нога
     setupSensor('btn-l-red', 'L_Red', chartLeft.lineRed, 'val-l-red');
     setupSensor('btn-l-yellow', 'L_Yel', chartLeft.lineYellow, 'val-l-yellow');
     setupSensor('btn-l-blue', 'L_Blu', chartLeft.lineBlue, 'val-l-blue');
 
+    // Правая нога
     setupSensor('btn-r-red', 'R_Red', chartRight.lineRed, 'val-r-red');
     setupSensor('btn-r-yellow', 'R_Yel', chartRight.lineYellow, 'val-r-yellow');
     setupSensor('btn-r-blue', 'R_Blu', chartRight.lineBlue, 'val-r-blue');
