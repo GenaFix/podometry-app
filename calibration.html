@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Сервисная Калибровка</title>
+  <style>
+    body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 15px; margin: 0; }
+    h2 { text-align: center; color: #34c759; margin-top: 5px; margin-bottom: 5px; font-size: 18px; text-transform: uppercase; }
+    p.desc { text-align: center; color: #aaa; font-size: 12px; margin-bottom: 20px; }
+    
+    .sensor-row { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .row-header { display: flex; justify-content: space-between; align-items: center; }
+    .sensor-name { font-weight: bold; font-size: 16px; color: #0a84ff; }
+    
+    .btn-connect { background: #0a84ff; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-connect.connected { background: #333; color: #888; }
+    
+    .data-panel { display: flex; justify-content: space-between; align-items: center; background: #111; padding: 10px; border-radius: 6px; }
+    .raw-data { font-size: 20px; font-family: monospace; color: #ffcc00; }
+    
+    .btn-calc { background: #34c759; color: black; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-calc:active { transform: scale(0.95); }
+    
+    .result { text-align: center; font-size: 16px; font-weight: bold; color: #fff; background: #222; padding: 10px; border-radius: 6px; border: 1px dashed #555; }
+    .highlight { color: #ff3b30; font-size: 20px; }
+  </style>
+</head>
+<body>
+
+  <h2>Калибровка (Эталон 5 кг)</h2>
+  <p class="desc">Программа приведет показания всех датчиков к значению "100" при установке гири.</p>
+
+  <div id="sensor-list"></div>
+
+  <script>
+    const sensors = ['L_Red', 'L_Yel', 'L_Blu', 'R_Red', 'R_Yel', 'R_Blu'];
+    const TARGET_VAL = 100; // Какое значение мы хотим видеть на графике при 5 кг
+    const container = document.getElementById('sensor-list');
+    
+    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+    const buffers = {};
+    const rawValues = {};
+
+    // Генерация интерфейса
+    sensors.forEach(name => {
+      rawValues[name] = 0;
+      const html = `
+        <div class="sensor-row">
+          <div class="row-header">
+            <div class="sensor-name">${name}</div>
+            <button class="btn-connect" id="btn-${name}">Подключить</button>
+          </div>
+          <div class="data-panel">
+            <span>RAW (Сырые):</span>
+            <span class="raw-data" id="raw-${name}">0</span>
+          </div>
+          <button class="btn-calc" id="calc-${name}">Зафиксировать 5 кг</button>
+          <div class="result" id="res-${name}">
+            Множитель: <span class="highlight" id="coef-${name}">-</span>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+    });
+
+    // Логика работы Bluetooth
+    sensors.forEach(targetName => {
+      document.getElementById(`btn-${targetName}`).addEventListener('click', async (e) => {
+        try {
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: targetName }],
+            optionalServices: [UART_SERVICE]
+          });
+          const server = await device.gatt.connect();
+          const service = await server.getPrimaryService(UART_SERVICE);
+          const characteristic = await service.getCharacteristic(UART_TX);
+          await characteristic.startNotifications();
+          
+          e.target.innerText = "Подключено";
+          e.target.classList.add("connected");
+
+          characteristic.addEventListener('characteristicvaluechanged', (event) => {
+            const id = device.id;
+            if (!buffers[id]) buffers[id] = "";
+            buffers[id] += new TextDecoder().decode(event.target.value);
+            const lines = buffers[id].split('\n');
+            if (lines.length > 1) {
+              for (let i = 0; i < lines.length - 1; i++) {
+                const parts = lines[i].trim().split(',');
+                if (parts.length === 3) {
+                  const fsr = parseInt(parts[0]);
+                  rawValues[targetName] = fsr;
+                  document.getElementById(`raw-${targetName}`).innerText = fsr;
+                }
+              }
+              buffers[id] = lines[lines.length - 1];
+            }
+          });
+        } catch (error) { console.log(error); }
+      });
+
+      // Логика расчета коэффициента
+      document.getElementById(`calc-${targetName}`).addEventListener('click', () => {
+        const raw = rawValues[targetName];
+        if (raw === 0) {
+          alert('Датчик показывает 0. Положите гирю!');
+          return;
+        }
+        const coef = (TARGET_VAL / raw).toFixed(3);
+        document.getElementById(`coef-${targetName}`).innerText = coef;
+      });
+    });
+  </script>
+</body>
+</html>
