@@ -11,7 +11,9 @@
     
     .sensor-row { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
     .row-header { display: flex; justify-content: space-between; align-items: center; }
-    .sensor-name { font-weight: bold; font-size: 16px; color: #0a84ff; }
+    
+    /* Убрали жесткий синий цвет, оставили только жирность и размер */
+    .sensor-name { font-weight: bold; font-size: 18px; } 
     
     .btn-connect { background: #0a84ff; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-connect.connected { background: #333; color: #888; }
@@ -35,8 +37,15 @@
 
   <script>
     const sensors = ['L_Red', 'L_Yel', 'L_Blu', 'R_Red', 'R_Yel', 'R_Blu'];
-    const TARGET_VAL = 100; // Какое значение мы хотим видеть на графике при 5 кг
+    const TARGET_VAL = 100; 
     const container = document.getElementById('sensor-list');
+    
+    // Карта цветов для каждого датчика (цвета Apple)
+    const labelColors = {
+      'L_Red': '#ff3b30', 'R_Red': '#ff3b30', // Красный
+      'L_Yel': '#ffcc00', 'R_Yel': '#ffcc00', // Желтый
+      'L_Blu': '#0a84ff', 'R_Blu': '#0a84ff'  // Синий
+    };
     
     const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
@@ -49,7 +58,8 @@
       const html = `
         <div class="sensor-row">
           <div class="row-header">
-            <div class="sensor-name">${name}</div>
+            <!-- Здесь программа подставляет нужный цвет из словаря -->
+            <div class="sensor-name" style="color: ${labelColors[name]}">${name}</div>
             <button class="btn-connect" id="btn-${name}">Подключить</button>
           </div>
           <div class="data-panel">
