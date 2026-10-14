@@ -2,14 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Угловая 3D Камера</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Подометрия PRO - Финальная Архитектура</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
   <style>
-    body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; }
+    body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
     
     /* Магнитофон */
     .recorder-panel { background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -26,38 +26,37 @@
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
     /* ИНТЕРАКТИВНЫЙ БЛОК (3D + UI) */
-    .workspace { position: relative; width: 100%; height: 290px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
+    .workspace { position: relative; width: 100%; height: 340px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    .overlay-panel { position: absolute; top: 0; width: 50%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
+    .overlay-panel { position: absolute; top: 0; width: 50%; height: 100%; pointer-events: none; }
     .panel-left { left: 0; border-right: 1px dashed rgba(255,255,255,0.15); }
     .panel-right { right: 0; }
     
-    /* Проценты */
-    .stats-block { pointer-events: auto; background: rgba(28,28,30, 0.6); margin: 5px; padding: 5px; border-radius: 8px; text-align: center; font-size: 9px; color: #aaa; backdrop-filter: blur(3px); line-height: 1.3; }
-    .stats-block span { font-size: 11px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 28px; text-align: left; }
+    /* Проценты - Фиксированы вверху панелей */
+    .stats-block { position: absolute; top: 5px; left: 5px; right: 5px; pointer-events: auto; background: rgba(28,28,30, 0.75); padding: 5px; border-radius: 8px; text-align: center; font-size: 9px; color: #aaa; backdrop-filter: blur(4px); line-height: 1.4; border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+    .stats-block span { font-size: 12px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 32px; text-align: left; }
     
-    /* Кнопки датчиков */
-    .sensor-btn { pointer-events: auto; position: absolute; width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: 0.2s; }
+    /* Кнопки датчиков прямо на 3D модели */
+    .sensor-btn { pointer-events: auto; position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: 0.2s; z-index: 20; }
     .sensor-btn:active { transform: scale(0.9); }
-    .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.8); }
+    .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.9); }
 
-    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ (Адаптировано под угол 45 градусов) */
-    /* ЛЕВАЯ НОГА */
-    #btn-L_Red { bottom: 10%; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
-    #btn-L_Yel { top: 40%; left: 68%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
-    #btn-L_Blu { top: 46%; left: 28%; transform: translateX(-50%); background: #0a84ff; } 
+    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ ДЛЯ ЛЕВОЙ НОГИ */
+    #btn-L_Red { bottom: 15px; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
+    #btn-L_Yel { top: 38%; left: 72%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
+    #btn-L_Blu { top: 48%; left: 25%; transform: translateX(-50%); background: #0a84ff; } 
     
-    /* ПРАВАЯ НОГА */
-    #btn-R_Red { bottom: 10%; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
-    #btn-R_Yel { top: 40%; left: 32%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
-    #btn-R_Blu { top: 46%; left: 72%; transform: translateX(-50%); background: #0a84ff; } 
+    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ ДЛЯ ПРАВОЙ НОГИ */
+    #btn-R_Red { bottom: 15px; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
+    #btn-R_Yel { top: 38%; left: 28%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
+    #btn-R_Blu { top: 48%; left: 75%; transform: translateX(-50%); background: #0a84ff; } 
 
     /* Графики */
     .chart-container { margin-bottom: 10px; }
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
-    canvas.chart-canvas { width: 100%; height: 110px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
+    canvas.chart-canvas { width: 100%; height: 95px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
   </style>
 </head>
 <body>
@@ -117,56 +116,63 @@
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // === THREE.JS ===
+    // === THREE.JS: ТОЧНАЯ КАЛИБРОВКА КАМЕРЫ ===
     const container3d = document.getElementById('canvas-3d');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
+    
+    // Адаптивная камера для мобильных экранов
+    const camera = new THREE.PerspectiveCamera(50, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container3d.clientWidth, container3d.clientHeight);
     container3d.appendChild(renderer.domElement);
+
+    // Защита от искажений при повороте экрана
+    window.addEventListener('resize', () => {
+      camera.aspect = container3d.clientWidth / container3d.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+    });
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); 
     dirLight.position.set(0, 10, 5); 
     scene.add(dirLight);
 
+    // === ГЕНЕРАЦИЯ АНАТОМИЧЕСКОЙ СТОПЫ ===
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
       
-      const material = new THREE.MeshPhongMaterial({ color: 0x4a4a4a, transparent: true, opacity: 0.9, shininess: 40 });
-      const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
+      const material = new THREE.MeshPhongMaterial({ color: 0x4a4a4a, transparent: true, opacity: 0.95, shininess: 30 });
+      const extrudeSettings = { depth: 0.35, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
-      // Идеальный анатомический контур
       const s = new THREE.Shape();
       s.moveTo(0, 0); // Пятка
-      s.bezierCurveTo(sign * -0.4, 0.1, sign * -0.6, 1.0, sign * -0.6, 2.0); // Внешний край стопы
-      s.bezierCurveTo(sign * -0.6, 3.2, sign * -0.5, 4.0, sign * 0.0, 4.2);  // До мизинца
-      s.bezierCurveTo(sign * 0.5, 4.3, sign * 0.9, 3.6, sign * 0.9, 2.8);    // Широкая плюсна (большой палец)
-      s.bezierCurveTo(sign * 0.9, 2.0, sign * 0.2, 1.5, sign * 0.2, 0.8);    // Глубокий свод
-      s.bezierCurveTo(sign * 0.2, 0.2, sign * -0.1, -0.1, 0, 0);             // Возврат к пятке
+      s.bezierCurveTo(sign * -0.3, 0.2, sign * -0.4, 1.5, sign * -0.45, 2.5); // Внешний край стопы
+      s.bezierCurveTo(sign * -0.5, 3.5, sign * -0.3, 4.2, sign * 0.0, 4.4);  // К мизинцу
+      s.bezierCurveTo(sign * 0.4, 4.5, sign * 0.9, 4.0, sign * 0.85, 3.0);   // Плюсна (под пальцами)
+      s.bezierCurveTo(sign * 0.8, 2.0, sign * 0.1, 1.5, sign * 0.15, 0.8);   // Глубокая арка свода
+      s.bezierCurveTo(sign * 0.2, 0.2, sign * 0.1, -0.1, 0, 0);              // Обратно к пятке
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // 5 пальцев
-      const toesData = [
-        { x: sign * 0.5,  y: 4.6, r: 0.35 }, 
-        { x: sign * 0.1,  y: 4.8, r: 0.25 }, 
-        { x: sign * -0.2, y: 4.7, r: 0.20 }, 
-        { x: sign * -0.45,y: 4.5, r: 0.18 }, 
-        { x: sign * -0.65,y: 4.2, r: 0.15 }  
+      // Пальцы стопы
+      const toes = [
+        { x: sign * 0.65, y: 4.5, r: 0.32 }, // Большой палец
+        { x: sign * 0.3,  y: 4.7, r: 0.22 }, // Второй
+        { x: sign * 0.0,  y: 4.6, r: 0.18 }, // Третий
+        { x: sign * -0.25,y: 4.4, r: 0.16 }, // Четвертый
+        { x: sign * -0.45,y: 4.1, r: 0.14 }  // Мизинец
       ];
-      toesData.forEach(toe => {
+      toes.forEach(toe => {
         const toeShape = new THREE.Shape();
         toeShape.absarc(toe.x, toe.y, toe.r, 0, Math.PI * 2, false);
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
       const wrapper = new THREE.Group();
-      footGroup.rotation.x = -Math.PI / 2; // Кладем на пол
-      footGroup.position.set(0, 0, 0);     // Центр вращения - ПЯТКА (0,0,0)
-      
-      wrapper.scale.set(0.7, 0.7, 0.7); // Уменьшаем масштаб для лучшего обзора
+      footGroup.rotation.x = -Math.PI / 2; // Кладем горизонтально
+      footGroup.position.set(0, 0, 0);     // Пятка находится строго в нулевой координате
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -174,20 +180,19 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Сдвигаем стопы ВНИЗ (к камере) и центрируем
-    meshLeftFoot.position.set(-1.4, 0, 2.0); 
-    meshRightFoot.position.set(1.4, 0, 2.0);
-    
+    // Центрируем стопы в их половинах экрана. Сдвигаем по Z вперед, чтобы они не улетали вверх!
+    meshLeftFoot.position.set(-1.4, 0, 1.5); 
+    meshRightFoot.position.set(1.4, 0, 1.5);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
-    // Сетка
-    const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x222222);
-    gridHelper.position.y = -0.5;
+    // Сетка на уровне пола
+    const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+    gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // КАМЕРА ПОД УГЛОМ (Видна глубина и подъемы)
-    camera.position.set(0, 6.0, 7.5); 
-    camera.lookAt(0, -0.5, 0.5); 
+    // === КАМЕРА (Идеальный угол 45 градусов сверху-сзади) ===
+    camera.position.set(0, 8.5, 7.5); 
+    camera.lookAt(0, 0, 0); 
 
     function animate3D() { requestAnimationFrame(animate3D); renderer.render(scene, camera); }
     animate3D();
@@ -229,7 +234,7 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Применяем вращение от гироскопа
+      // Применяем вращение от гироскопа (Кинематика)
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
