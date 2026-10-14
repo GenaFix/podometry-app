@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Встроенные 3D Датчики</title>
+  <title>Подометрия PRO - Идеальный Масштаб</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Подключаем CSS2D для идеального прикрепления кнопок к 3D объектам -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
   
   <style>
     body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
@@ -29,26 +27,31 @@
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* 3D-привязанные кнопки датчиков */
+    /* Надежные и стабильные кнопки датчиков */
     .sensor-btn { 
-      width: 36px; height: 36px; border-radius: 50%; 
+      position: absolute; width: 42px; height: 42px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.4); color: white; 
       cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); z-index: 20;
       transform: translate(-50%, -50%); 
-      font-family: monospace; line-height: 1.0;
+      font-family: monospace; line-height: 1.1;
     }
     
-    .sensor-btn .val { font-size: 10px; font-weight: bold; }
-    .sensor-btn .pct { font-size: 7px; opacity: 0.9; }
-    .sensor-btn.disconnected { font-size: 8px; font-weight: bold; }
+    .sensor-btn .val { font-size: 11px; font-weight: bold; }
+    .sensor-btn .pct { font-size: 8px; opacity: 0.9; }
+    .sensor-btn.disconnected { font-size: 9px; font-weight: bold; }
 
-    #btn-L_Red, #btn-R_Red { background: #ff3b30; }
-    #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
-    #btn-L_Blu, #btn-R_Blu { background: #0a84ff; }
+    /* Точные позиции кнопок под крупную стопу */
+    #btn-L_Red { background: #ff3b30; bottom: 15%; left: 30%; }
+    #btn-L_Yel { background: #ffcc00; color: #000; top: 30%; left: 38%; }
+    #btn-L_Blu { background: #0a84ff; top: 38%; left: 16%; }
+
+    #btn-R_Red { background: #ff3b30; bottom: 15%; right: 30%; left: auto; }
+    #btn-R_Yel { background: #ffcc00; color: #000; top: 30%; right: 38%; left: auto; }
+    #btn-R_Blu { background: #0a84ff; top: 38%; right: 16%; left: auto; }
     
     .sensor-btn:active { transform: translate(-50%, -50%) scale(0.9); }
-    .connected { border-color: #34c759 !important; box-shadow: 0 0 12px rgba(52,199,89,0.9); }
+    .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.9); }
 
     .chart-container { margin-bottom: 8px; }
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; padding: 0 5px; }
@@ -75,6 +78,13 @@
 
   <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
+    
+    <div id="btn-L_Red" class="sensor-btn disconnected">L_Red</div>
+    <div id="btn-L_Yel" class="sensor-btn disconnected">L_Yel</div>
+    <div id="btn-L_Blu" class="sensor-btn disconnected">L_Blu</div>
+    <div id="btn-R_Red" class="sensor-btn disconnected">R_Red</div>
+    <div id="btn-R_Yel" class="sensor-btn disconnected">R_Yel</div>
+    <div id="btn-R_Blu" class="sensor-btn disconnected">R_Blu</div>
   </div>
 
   <div class="chart-container">
@@ -91,7 +101,7 @@
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // === THREE.JS С ИНТЕГРИРОВАННЫМ 2D UI РЕНДЕРОМ ===
+    // === THREE.JS СТАБИЛЬНАЯ СЦЕНА ===
     const container3d = document.getElementById('canvas-3d');
     const scene = new THREE.Scene();
     
@@ -100,40 +110,16 @@
     renderer.setSize(container3d.clientWidth, container3d.clientHeight);
     container3d.appendChild(renderer.domElement);
 
-    // CSS2D Рендерер для привязки HTML-кнопок к 3D точкам
-    const labelRenderer = new CSS2DRenderer();
-    labelRenderer.setSize(container3d.clientWidth, container3d.clientHeight);
-    labelRenderer.domElement.style.position = 'absolute';
-    labelRenderer.domElement.style.top = '0px';
-    labelRenderer.domElement.style.pointerEvents = 'none'; // Чтобы клики проходили сквозь контейнер к кнопкам
-    container3d.appendChild(labelRenderer.domElement);
-
     window.addEventListener('resize', () => {
       camera.aspect = container3d.clientWidth / container3d.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container3d.clientWidth, container3d.clientHeight);
-      labelRenderer.setSize(container3d.clientWidth, container3d.clientHeight);
     });
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); 
     dirLight.position.set(0, 10, 5); 
     scene.add(dirLight);
-
-    // Функция создания кнопки и привязки её к 3D-объекту стопы
-    function createSensorButton(id, label) {
-      const div = document.createElement('div');
-      div.id = 'btn-' + id;
-      div.className = 'sensor-btn disconnected';
-      div.innerText = label;
-      div.style.pointerEvents = 'auto'; // Включаем клики для самой кнопки
-      
-      // Собственник клика для Bluetooth подключения переносится сюда
-      div.onclick = () => triggerBluetoothConnect(id, div);
-
-      const labelObject = new CSS2DObject(div);
-      return labelObject;
-    }
 
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
@@ -144,20 +130,20 @@
 
       const s = new THREE.Shape();
       s.moveTo(0, -0.8); 
-      s.bezierCurveTo(sign * -0.6, -0.8, sign * -0.7, 0.1, sign * -0.7, 1.2); 
-      s.bezierCurveTo(sign * -0.8, 2.5, sign * -0.9, 3.5, sign * -0.8, 4.2);  
-      s.bezierCurveTo(sign * -0.4, 4.8, sign * 0.7, 4.8, sign * 0.9, 3.8);  
-      s.bezierCurveTo(sign * 1.0, 2.8, sign * 0.5, 1.8, sign * 0.4, 0.8);    
-      s.bezierCurveTo(sign * 0.4, -0.2, sign * 0.4, -0.8, 0, -0.8);             
+      s.bezierCurveTo(sign * -0.7, -0.8, sign * -0.9, 0.1, sign * -0.9, 1.3); 
+      s.bezierCurveTo(sign * -1.0, 2.6, sign * -1.1, 3.6, sign * -1.0, 4.4);  
+      s.bezierCurveTo(sign * -0.5, 5.2, sign * 0.8, 5.2, sign * 1.1, 4.0);  
+      s.bezierCurveTo(sign * 1.2, 2.8, sign * 0.6, 1.8, sign * 0.5, 0.8);    
+      s.bezierCurveTo(sign * 0.5, -0.2, sign * 0.5, -0.8, 0, -0.8);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
       const toes = [
-        { x: sign * 0.6,  y: 4.8, r: 0.35 }, 
-        { x: sign * 0.15, y: 5.0, r: 0.25 }, 
-        { x: sign * -0.2, y: 4.8, r: 0.20 }, 
-        { x: sign * -0.45,y: 4.4, r: 0.16 }, 
-        { x: sign * -0.65,y: 3.9, r: 0.13 }  
+        { x: sign * 0.7,  y: 5.0, r: 0.40 }, 
+        { x: sign * 0.2,  y: 5.2, r: 0.30 }, 
+        { x: sign * -0.25,y: 5.0, r: 0.24 }, 
+        { x: sign * -0.55,y: 4.6, r: 0.19 }, 
+        { x: sign * -0.8, y: 4.1, r: 0.15 }  
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -165,22 +151,11 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // Добавляем датчики прямо на стопу в 3D пространстве
-      if (isLeft) {
-        const redObj = createSensorButton('L_Red', 'L_Red'); redObj.position.set(0.0, 0.2, 0.4); footGroup.add(redObj);
-        const yelObj = createSensorButton('L_Yel', 'L_Yel'); yelObj.position.set(0.6, 3.2, 0.4); footGroup.add(yelObj);
-        const bluObj = createSensorButton('L_Blu', 'L_Blu'); bluObj.position.set(-0.5, 2.8, 0.4); footGroup.add(bluObj);
-      } else {
-        const redObj = createSensorButton('R_Red', 'R_Red'); redObj.position.set(0.0, 0.2, 0.4); footGroup.add(redObj);
-        const yelObj = createSensorButton('R_Yel', 'R_Yel'); yelObj.position.set(-0.6, 3.2, 0.4); footGroup.add(yelObj);
-        const bluObj = createSensorButton('R_Blu', 'R_Blu'); bluObj.position.set(0.5, 2.8, 0.4); footGroup.add(bluObj);
-      }
-
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
       footGroup.position.set(0, 0, 0);     
       
-      // Идеальный крупный масштаб стопы
+      // КРУПНЫЙ МАСШТАБ СТОПЫ (1.4)
       wrapper.scale.set(1.4, 1.4, 1.4);
       wrapper.add(footGroup);
       return wrapper;
@@ -189,23 +164,22 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Надежно разводим стопы в стороны без пересечений
-    meshLeftFoot.position.set(-1.6, 0, 0.2); 
-    meshRightFoot.position.set(1.6, 0, 0.2);
+    // Раздвигаем стопы в стороны, чтобы они не слипались
+    meshLeftFoot.position.set(-1.4, 0, 0.3); 
+    meshRightFoot.position.set(1.4, 0, 0.3);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // Камера с отличным обзором
-    camera.position.set(0, 5.5, 4.5); 
-    camera.lookAt(0, 0, 0.2); 
+    // Камера с идеальным приближением
+    camera.position.set(0, 5.2, 4.8); 
+    camera.lookAt(0, 0, 0.3); 
 
     function animate3D() { 
       requestAnimationFrame(animate3D); 
       renderer.render(scene, camera); 
-      labelRenderer.render(scene, camera); // Рендерим кнопки на их 3D позициях
     }
     animate3D();
 
@@ -258,7 +232,6 @@
       meshRightFoot.rotation.z = THREE.MathUtils.degToRad(state.angles['R_Roll']);
     }
 
-    // === ПЛЕЕР ===
     const btnRecord = document.getElementById('btn-record'); const btnStop = document.getElementById('btn-stop'); const btnPlay = document.getElementById('btn-play');
     const timeline = document.getElementById('timeline'); const statusBadge = document.getElementById('rec-status'); let playInterval;
 
@@ -267,44 +240,42 @@
     btnPlay.onclick = () => { if(recordBuffer.length === 0) return; isRecording = false; isPlaying = true; btnRecord.style.opacity = "1"; statusBadge.innerText = "▶ ВОСПРОИЗВЕДЕНИЕ"; statusBadge.style.color = "#34c759"; timeline.disabled = false; clearInterval(playInterval); let i = parseInt(timeline.value); playInterval = setInterval(() => { if(i >= recordBuffer.length) { clearInterval(playInterval); statusBadge.innerText = "ПАУЗА"; return; } timeline.value = i; renderFrame(recordBuffer[i]); i++; }, 50); };
     timeline.oninput = () => { if(recordBuffer.length === 0) return; isPlaying = true; clearInterval(playInterval); statusBadge.innerText = "⏸ ПРОСМОТР КАДРА"; statusBadge.style.color = "#0a84ff"; renderFrame(recordBuffer[timeline.value]); };
 
-    // === BLUETOOTH ПОДКЛЮЧЕНИЕ ДАТЧИКОВ ===
     const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; const buffers = {};
 
-    async function triggerBluetoothConnect(sensor, btnEl) {
-      try {
-        const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: sensor }], optionalServices: [UART_SERVICE] });
-        const server = await device.gatt.connect(); 
-        const service = await server.getPrimaryService(UART_SERVICE); 
-        const characteristic = await service.getCharacteristic(UART_TX);
-        await characteristic.startNotifications();
-        
-        btnEl.innerText = "OK"; 
-        btnEl.classList.remove("disconnected");
-        btnEl.classList.add("connected");
+    Object.keys(CALIBRATION).forEach(sensor => {
+      document.getElementById(`btn-${sensor}`).addEventListener('click', async (e) => {
+        try {
+          const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: sensor }], optionalServices: [UART_SERVICE] });
+          const server = await device.gatt.connect(); const service = await server.getPrimaryService(UART_SERVICE); const characteristic = await service.getCharacteristic(UART_TX);
+          await characteristic.startNotifications();
+          e.target.innerText = "OK"; 
+          e.target.classList.remove("disconnected");
+          e.target.classList.add("connected");
 
-        characteristic.addEventListener('characteristicvaluechanged', (event) => {
-          if(isPlaying) return; 
-          const id = device.id; if (!buffers[id]) buffers[id] = ""; buffers[id] += new TextDecoder().decode(event.target.value); const dataLines = buffers[id].split('\n');
-          
-          if (dataLines.length > 1) {
-            for (let i = 0; i < dataLines.length - 1; i++) {
-              const parts = dataLines[i].trim().split(',');
-              if (parts.length === 3) {
-                const rawFsr = parseInt(parts[0]); const pitch = parseInt(parts[1]); const roll = parseInt(parts[2]);
-                if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
+          characteristic.addEventListener('characteristicvaluechanged', (event) => {
+            if(isPlaying) return; 
+            const id = device.id; if (!buffers[id]) buffers[id] = ""; buffers[id] += new TextDecoder().decode(event.target.value); const dataLines = buffers[id].split('\n');
+            
+            if (dataLines.length > 1) {
+              for (let i = 0; i < dataLines.length - 1; i++) {
+                const parts = dataLines[i].trim().split(',');
+                if (parts.length === 3) {
+                  const rawFsr = parseInt(parts[0]); const pitch = parseInt(parts[1]); const roll = parseInt(parts[2]);
+                  if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
 
-                currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
-                if (sensor === 'L_Red') { currentState.angles['L_Pitch'] = pitch; currentState.angles['L_Roll'] = roll; }
-                if (sensor === 'R_Red') { currentState.angles['R_Pitch'] = pitch; currentState.angles['R_Roll'] = roll; }
+                  currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
+                  if (sensor === 'L_Red') { currentState.angles['L_Pitch'] = pitch; currentState.angles['L_Roll'] = roll; }
+                  if (sensor === 'R_Red') { currentState.angles['R_Pitch'] = pitch; currentState.angles['R_Roll'] = roll; }
+                }
               }
+              buffers[id] = dataLines[dataLines.length - 1];
+              renderFrame(currentState);
+              if (isRecording) recordBuffer.push(JSON.parse(JSON.stringify(currentState))); 
             }
-            buffers[id] = dataLines[dataLines.length - 1];
-            renderFrame(currentState);
-            if (isRecording) recordBuffer.push(JSON.parse(JSON.stringify(currentState))); 
-          }
-        });
-      } catch (error) { console.log(error); }
-    }
+          });
+        } catch (error) { console.log(error); }
+      });
+    });
   </script>
 </body>
 </html>
