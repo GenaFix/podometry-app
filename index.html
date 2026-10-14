@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - 3D Анатомия & Запись</title>
+  <title>Подометрия PRO - Интерактивная 3D Среда</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,55 +11,57 @@
   <style>
     body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; }
     
-    /* Панель плеера записи */
-    .recorder-panel { 
-      background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; 
-      margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;
-    }
+    /* Магнитофон */
+    .recorder-panel { background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
     .recorder-controls { display: flex; justify-content: space-between; gap: 10px; }
     .btn-rec { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
-    #btn-record { background: #ff3b30; }
-    #btn-stop { background: #333; color: #888; }
-    #btn-play { background: #34c759; }
+    #btn-record { background: #ff3b30; } #btn-stop { background: #333; color: #888; } #btn-play { background: #34c759; }
     .timeline { width: 100%; margin: 0; }
     .status-badge { text-align: center; font-size: 12px; font-weight: bold; font-family: monospace; color: #ffcc00; }
 
-    /* Панель глобального баланса */
-    .balance-banner { 
-      background: #1c1c1e; border: 2px solid #333; border-radius: 12px; padding: 10px; 
-      text-align: center; margin-bottom: 15px;
-    }
-    .balance-title { font-size: 12px; color: #888; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
-    .balance-values { font-size: 22px; font-weight: bold; }
-    #left-pct, #right-pct { display: inline-block; width: 60px; font-family: monospace; text-align: left; }
+    /* Общий баланс */
+    .balance-banner { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 12px; }
+    .balance-title { font-size: 11px; color: #888; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+    .balance-values { font-size: 20px; font-weight: bold; }
+    #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* 3D Окно */
-    #canvas-3d-container { width: 100%; height: 220px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; position: relative; overflow: hidden; }
-    .hint-3d { position: absolute; top: 10px; left: 10px; font-size: 10px; color: #888; font-weight: bold; z-index: 10; }
+    /* === НОВЫЙ ОБЪЕДИНЕННЫЙ БЛОК (3D + КНОПКИ + ПРОЦЕНТЫ) === */
+    .workspace { position: relative; width: 100%; height: 350px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
+    #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+    
+    .overlay-panel { position: absolute; top: 0; width: 50%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
+    .panel-left { left: 0; border-right: 1px dashed rgba(255,255,255,0.15); }
+    .panel-right { right: 0; }
+    
+    /* Проценты над 3D стопой */
+    .stats-block { pointer-events: auto; background: rgba(28,28,30, 0.7); margin: 10px; padding: 8px; border-radius: 8px; text-align: center; font-size: 10px; color: #aaa; backdrop-filter: blur(3px); }
+    .stats-block span { font-size: 12px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 30px; text-align: left; }
+    
+    /* Кнопки датчиков прямо на 3D модели */
+    .sensor-btn { pointer-events: auto; position: absolute; width: 45px; height: 45px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); font-size: 10px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.6); transition: 0.2s; }
+    .sensor-btn:active { transform: scale(0.9); }
+    .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.8); }
 
-    /* Панели датчиков */
-    .panels-container { display: flex; gap: 10px; margin-bottom: 15px; }
-    .sensor-panel { background: #1c1c1e; border-radius: 12px; padding: 10px; flex: 1; display: flex; flex-direction: column; align-items: center; }
-    .sensor-panel h3 { margin: 0 0 10px 0; font-size: 14px; color: #aaa; text-transform: uppercase; }
+    /* Позиции кнопок ЛЕВОЙ ноги */
+    #btn-L_Red { bottom: 15px; left: 50%; transform: translateX(-50%); background: #ff3b30; }
+    #btn-L_Yel { top: 150px; right: 10%; background: #ffcc00; color: #000; } /* Внутри */
+    #btn-L_Blu { top: 150px; left: 10%; background: #0a84ff; }               /* Снаружи */
     
-    .foot-balance { font-size: 10px; color: #888; text-align: center; margin-bottom: 10px; font-weight: bold; }
-    .foot-balance span { font-size: 12px; font-family: monospace; display: inline-block; width: 35px; text-align: left; }
+    /* Позиции кнопок ПРАВОЙ ноги */
+    #btn-R_Red { bottom: 15px; left: 50%; transform: translateX(-50%); background: #ff3b30; }
+    #btn-R_Yel { top: 150px; left: 10%; background: #ffcc00; color: #000; }  /* Внутри */
+    #btn-R_Blu { top: 150px; right: 10%; background: #0a84ff; }              /* Снаружи */
 
-    .buttons-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; justify-items: center; }
-    .btn-circle { width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; color: white; font-weight: bold; font-size: 10px; cursor: pointer; }
-    .bg-blue { background-color: #0a84ff; } .bg-yellow { background-color: #ffcc00; color: #000; } .bg-red { background-color: #ff3b30; }
-    .connected { border-color: #34c759 !important; box-shadow: 0 0 10px rgba(52,199,89,0.5); }
-    
     /* Графики */
-    .chart-container { margin-bottom: 15px; }
+    .chart-container { margin-bottom: 10px; }
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
-    canvas.chart-canvas { width: 100%; height: 100px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
+    canvas.chart-canvas { width: 100%; height: 90px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
   </style>
 </head>
 <body>
 
-  <!-- МАГНИТОФОН -->
+  <!-- 1. ПАНЕЛЬ ЗАПИСИ -->
   <div class="recorder-panel">
     <div class="status-badge" id="rec-status">РЕЖИМ: LIVE (РЕАЛЬНОЕ ВРЕМЯ)</div>
     <div class="recorder-controls">
@@ -70,273 +72,209 @@
     <input type="range" id="timeline" class="timeline" min="0" max="0" value="0" disabled>
   </div>
 
+  <!-- 2. БАЛАНС -->
   <div class="balance-banner">
-    <div class="balance-title">Общий баланс</div>
+    <div class="balance-title">Глобальное распределение</div>
     <div class="balance-values">ЛЕВ: <span id="left-pct">0%</span> | ПРАВ: <span id="right-pct">0%</span></div>
   </div>
 
-  <div id="canvas-3d-container"><div class="hint-3d">3D КИНЕМАТИКА</div></div>
-
-  <div class="panels-container">
-    <div class="sensor-panel">
-      <h3>Левая</h3>
-      <div class="foot-balance">ПЯТКА: <span id="l-heel" style="color:#ff3b30">0%</span><br>ВНУТР: <span id="l-in" style="color:#ffcc00">0%</span> | ВНЕШ: <span id="l-out" style="color:#0a84ff">0%</span></div>
-      <div class="buttons-grid">
-        <button id="btn-L_Blu" class="btn-circle bg-blue">L_Blu</button><button id="btn-L_Yel" class="btn-circle bg-yellow">L_Yel</button><button id="btn-L_Red" class="btn-circle bg-red" style="grid-column: span 2;">L_Red</button>
+  <!-- 3. НОВЫЙ ИНТЕРАКТИВНЫЙ БЛОК (3D + UI) -->
+  <div class="workspace">
+    <div id="canvas-3d"></div>
+    
+    <!-- Оверлей Левой Стопы -->
+    <div class="overlay-panel panel-left">
+      <div class="stats-block">
+        ЛЕВАЯ СТОПА<br>
+        <span id="l-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
+        <span id="l-in" style="color:#ffcc00">0%</span> (ВНУТР) | 
+        <span id="l-out" style="color:#0a84ff">0%</span> (ВНЕШ)
       </div>
+      <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
+      <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
+      <div id="btn-L_Red" class="sensor-btn">L_Red</div>
     </div>
-    <div class="sensor-panel">
-      <h3>Правая</h3>
-      <div class="foot-balance">ПЯТКА: <span id="r-heel" style="color:#ff3b30">0%</span><br>ВНУТР: <span id="r-in" style="color:#ffcc00">0%</span> | ВНЕШ: <span id="r-out" style="color:#0a84ff">0%</span></div>
-      <div class="buttons-grid">
-        <button id="btn-R_Yel" class="btn-circle bg-yellow">R_Yel</button><button id="btn-R_Blu" class="btn-circle bg-blue">R_Blu</button><button id="btn-R_Red" class="btn-circle bg-red" style="grid-column: span 2;">R_Red</button>
+    
+    <!-- Оверлей Правой Стопы -->
+    <div class="overlay-panel panel-right">
+      <div class="stats-block">
+        ПРАВАЯ СТОПА<br>
+        <span id="r-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
+        <span id="r-in" style="color:#ffcc00">0%</span> (ВНУТР) | 
+        <span id="r-out" style="color:#0a84ff">0%</span> (ВНЕШ)
       </div>
+      <div id="btn-R_Yel" class="sensor-btn">R_Yel</div>
+      <div id="btn-R_Blu" class="sensor-btn">R_Blu</div>
+      <div id="btn-R_Red" class="sensor-btn">R_Red</div>
     </div>
   </div>
 
+  <!-- 4. ГРАФИКИ -->
   <div class="chart-container">
-    <div class="chart-header"><span>ЛЕВАЯ</span><div class="chart-values"><span id="val-L_Red" style="color:#ff3b30">0</span> <span id="val-L_Yel" style="color:#ffcc00">0</span> <span id="val-L_Blu" style="color:#0a84ff">0</span></div></div>
+    <div class="chart-header"><span>ЛЕВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-L_Red" style="color:#ff3b30">0</span> <span id="val-L_Yel" style="color:#ffcc00">0</span> <span id="val-L_Blu" style="color:#0a84ff">0</span></div></div>
     <canvas id="chart-left" class="chart-canvas"></canvas>
   </div>
   <div class="chart-container">
-    <div class="chart-header"><span>ПРАВАЯ</span><div class="chart-values"><span id="val-R_Red" style="color:#ff3b30">0</span> <span id="val-R_Yel" style="color:#ffcc00">0</span> <span id="val-R_Blu" style="color:#0a84ff">0</span></div></div>
+    <div class="chart-header"><span>ПРАВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-R_Red" style="color:#ff3b30">0</span> <span id="val-R_Yel" style="color:#ffcc00">0</span> <span id="val-R_Blu" style="color:#0a84ff">0</span></div></div>
     <canvas id="chart-right" class="chart-canvas"></canvas>
   </div>
 
   <script>
-    // 1. АРХИТЕКТУРА И СОСТОЯНИЯ
+    // === АРХИТЕКТУРА И ДАННЫЕ ===
     const CALIBRATION = { 'L_Red': 1.408, 'L_Yel': 6.667, 'L_Blu': 0.840, 'R_Red': 3.125, 'R_Yel': 0.556, 'R_Blu': 1.786 };
-    let currentState = {
-      calValues: { 'L_Red': 0, 'L_Yel': 0, 'L_Blu': 0, 'R_Red': 0, 'R_Yel': 0, 'R_Blu': 0 },
-      angles: { 'L_Pitch': 0, 'L_Roll': 0, 'R_Pitch': 0, 'R_Roll': 0 }
-    };
-    
-    // Переменные для записи
-    let recordBuffer = [];
-    let isRecording = false;
-    let isPlaying = false;
+    let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
+    let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // 2. 3D СЦЕНА И АНАТОМИЧЕСКАЯ ФОРМА СТОПЫ (С ПАЛЬЦАМИ)
-    const container3d = document.getElementById('canvas-3d-container');
+    // === THREE.JS (АНАТОМИЧЕСКАЯ СТОПА) ===
+    const container3d = document.getElementById('canvas-3d');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container3d.clientWidth, container3d.clientHeight);
     container3d.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    dirLight.position.set(0, 10, 5);
-    scene.add(dirLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5); dirLight.position.set(0, 10, 5); scene.add(dirLight);
 
-    // Функция создания детализированной анатомической стопы с пальцами
     function createAnatomicFootMesh(isLeft, colorHex) {
       const footGroup = new THREE.Group();
-      const sign = isLeft ? -1 : 1; 
-      const material = new THREE.MeshPhongMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
+      const sign = isLeft ? 1 : -1; // 1 = Левая, -1 = Правая
+      const material = new THREE.MeshPhongMaterial({ color: colorHex, transparent: true, opacity: 0.9, shininess: 30 });
+      const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
 
-      // 2.1 Основная стопа (пятка, свод, плюсна)
+      // Основной контур стопы
       const s = new THREE.Shape();
-      s.moveTo(0, 0); 
-      s.bezierCurveTo(sign * 0.4, 0, sign * 0.5, 2.0, sign * 0.4, 3.5); 
-      s.bezierCurveTo(sign * 0.2, 3.8, sign * -0.6, 3.8, sign * -0.8, 3.2); 
-      s.bezierCurveTo(sign * -1.0, 2.5, sign * -0.1, 1.5, sign * -0.2, 0.5); 
-      s.bezierCurveTo(sign * -0.2, 0, sign * -0.2, 0, 0, 0); 
+      s.moveTo(0, 0); // Пятка
+      s.bezierCurveTo(sign * -0.5, 0.2, sign * -0.6, 1.5, sign * -0.5, 3.0); // Внешний край
+      s.bezierCurveTo(sign * -0.4, 3.5, sign * 0.6, 3.7, sign * 0.8, 3.0);   // Носок (под пальцами)
+      s.bezierCurveTo(sign * 0.9, 1.5, sign * 0.1, 1.0, sign * 0.2, -0.2);   // Внутренний край (свод)
+      s.bezierCurveTo(sign * 0.2, -0.5, sign * -0.1, -0.5, 0, 0);            // Замыкание пятки
+      
+      footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      const extrudeSettings = { depth: 0.2, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 };
-      const mainMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material);
-      footGroup.add(mainMesh);
-
-      // 2.2 Добавление 5 пальцев
+      // 5 Пальцев
       const toesData = [
-        { x: sign * -0.6, y: 4.1, r: 0.25 }, // Большой палец
-        { x: sign * -0.2, y: 4.3, r: 0.18 }, // Второй
-        { x: sign * 0.1,  y: 4.2, r: 0.15 }, // Третий
-        { x: sign * 0.35, y: 4.0, r: 0.12 }, // Четвертый
-        { x: sign * 0.5,  y: 3.7, r: 0.10 }  // Мизинец
+        { x: sign * 0.6, y: 3.6, r: 0.35 },  // Большой палец
+        { x: sign * 0.2, y: 3.8, r: 0.25 },
+        { x: sign * -0.1, y: 3.7, r: 0.2 },
+        { x: sign * -0.35, y: 3.5, r: 0.18 },
+        { x: sign * -0.55, y: 3.2, r: 0.15 } // Мизинец
       ];
-
       toesData.forEach(toe => {
         const toeShape = new THREE.Shape();
         toeShape.absarc(toe.x, toe.y, toe.r, 0, Math.PI * 2, false);
-        const toeMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material);
-        footGroup.add(toeMesh);
+        footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // Сдвигаем геометрию так, чтобы центр вращения был в районе лодыжки/пятки
-      footGroup.position.set(0, -1.5, -0.1);
-
-      // Обертка для правильного расположения в 3D пространстве
+      // Подготовка для правильного вращения и вида от 1-го лица
       const wrapper = new THREE.Group();
+      footGroup.rotation.x = -Math.PI / 2; // Кладем горизонтально на пол
+      footGroup.position.set(0, 0, 0);     // Центр вращения - ПЯТКА (Z=0, Y=0)
       wrapper.add(footGroup);
-      wrapper.rotation.x = Math.PI / 2; // Кладем стопу на пол
       return wrapper;
     }
 
     const meshLeftFoot = createAnatomicFootMesh(true, 0x0a84ff);
     const meshRightFoot = createAnatomicFootMesh(false, 0xff3b30);
-    
-    meshLeftFoot.position.set(-1.2, 0, 0);
-    meshRightFoot.position.set(1.2, 0, 0);
-    scene.add(meshLeftFoot);
-    scene.add(meshRightFoot);
+    meshLeftFoot.position.set(-1.3, 0, 0); // Раздвигаем стопы
+    meshRightFoot.position.set(1.3, 0, 0);
+    scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
-    const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+    // Сетка на полу
+    const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x222222);
     gridHelper.position.y = -0.5;
     scene.add(gridHelper);
 
-    camera.position.set(0, 4, 6);
-    camera.lookAt(0, 0, 0);
+    // Камера СЗАДИ-СВЕРХУ (Как будто вы смотрите на свои ноги)
+    camera.position.set(0, 6.5, 3.5); 
+    camera.lookAt(0, 0, -2); // Смотрим в центр стоп (между пяткой и носком)
 
     function animate3D() { requestAnimationFrame(animate3D); renderer.render(scene, camera); }
     animate3D();
 
-    // 3. ГРАФИКИ
-    const chartOptions = { millisPerPixel: 20, responsive: true, grid: { fillStyle: '#1c1c1e', strokeStyle: '#333' }, labels: { fillStyle: '#888', precision: 0 }, minValue: 0 };
-    const chartLeft = new SmoothieChart(chartOptions);
-    const chartRight = new SmoothieChart(chartOptions);
-    chartLeft.streamTo(document.getElementById('chart-left'), 100);
-    chartRight.streamTo(document.getElementById('chart-right'), 100);
+    // === ГРАФИКИ ===
+    const chartOpts = { millisPerPixel: 20, responsive: true, grid: { fillStyle: '#1c1c1e', strokeStyle: '#333' }, labels: { fillStyle: '#888', precision: 0 }, minValue: 0 };
+    const chartLeft = new SmoothieChart(chartOpts); const chartRight = new SmoothieChart(chartOpts);
+    chartLeft.streamTo(document.getElementById('chart-left'), 100); chartRight.streamTo(document.getElementById('chart-right'), 100);
     const lines = { 'L_Red': new TimeSeries(), 'L_Yel': new TimeSeries(), 'L_Blu': new TimeSeries(), 'R_Red': new TimeSeries(), 'R_Yel': new TimeSeries(), 'R_Blu': new TimeSeries() };
     const colors = { Red: '#ff3b30', Yel: '#ffcc00', Blu: '#0a84ff' };
     chartLeft.addTimeSeries(lines['L_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
     chartRight.addTimeSeries(lines['R_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
 
-    // 4. ГЛАВНАЯ ФУНКЦИЯ ОТРИСОВКИ (Используется и для Live, и для Плеера)
+    // === ЛОГИКА ОБНОВЛЕНИЯ ===
     function renderFrame(state) {
-      // Обновление баланса
-      let lTotal = state.calValues['L_Red'] + state.calValues['L_Yel'] + state.calValues['L_Blu'];
-      let rTotal = state.calValues['R_Red'] + state.calValues['R_Yel'] + state.calValues['R_Blu'];
-      let tTotal = lTotal + rTotal;
+      let lTot = state.calValues['L_Red'] + state.calValues['L_Yel'] + state.calValues['L_Blu'];
+      let rTot = state.calValues['R_Red'] + state.calValues['R_Yel'] + state.calValues['R_Blu'];
+      let tTot = lTot + rTot;
 
-      if (tTotal > 20) { 
-        document.getElementById('left-pct').innerText = Math.round((lTotal / tTotal) * 100) + '%';
-        document.getElementById('right-pct').innerText = Math.round((rTotal / tTotal) * 100) + '%';
-      } else {
-        document.getElementById('left-pct').innerText = '0%'; document.getElementById('right-pct').innerText = '0%';
-      }
+      if (tTot > 20) { 
+        document.getElementById('left-pct').innerText = Math.round((lTot / tTot) * 100) + '%';
+        document.getElementById('right-pct').innerText = Math.round((rTot / tTot) * 100) + '%';
+      } else { document.getElementById('left-pct').innerText = '0%'; document.getElementById('right-pct').innerText = '0%'; }
 
-      if (lTotal > 10) {
-        document.getElementById('l-heel').innerText = Math.round((state.calValues['L_Red'] / lTotal) * 100) + '%';
-        document.getElementById('l-in').innerText = Math.round((state.calValues['L_Yel'] / lTotal) * 100) + '%';
-        document.getElementById('l-out').innerText = Math.round((state.calValues['L_Blu'] / lTotal) * 100) + '%';
+      if (lTot > 10) {
+        document.getElementById('l-heel').innerText = Math.round((state.calValues['L_Red'] / lTot) * 100) + '%';
+        document.getElementById('l-in').innerText = Math.round((state.calValues['L_Yel'] / lTot) * 100) + '%';
+        document.getElementById('l-out').innerText = Math.round((state.calValues['L_Blu'] / lTot) * 100) + '%';
       } else { document.getElementById('l-heel').innerText = '0%'; document.getElementById('l-in').innerText = '0%'; document.getElementById('l-out').innerText = '0%'; }
 
-      if (rTotal > 10) {
-        document.getElementById('r-heel').innerText = Math.round((state.calValues['R_Red'] / rTotal) * 100) + '%';
-        document.getElementById('r-in').innerText = Math.round((state.calValues['R_Yel'] / rTotal) * 100) + '%';
-        document.getElementById('r-out').innerText = Math.round((state.calValues['R_Blu'] / rTotal) * 100) + '%';
+      if (rTot > 10) {
+        document.getElementById('r-heel').innerText = Math.round((state.calValues['R_Red'] / rTot) * 100) + '%';
+        document.getElementById('r-in').innerText = Math.round((state.calValues['R_Yel'] / rTot) * 100) + '%';
+        document.getElementById('r-out').innerText = Math.round((state.calValues['R_Blu'] / rTot) * 100) + '%';
       } else { document.getElementById('r-heel').innerText = '0%'; document.getElementById('r-in').innerText = '0%'; document.getElementById('r-out').innerText = '0%'; }
 
-      // Обновление цифр над графиком
       Object.keys(CALIBRATION).forEach(s => {
         document.getElementById(`val-${s}`).innerText = state.calValues[s];
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Обновление 3D
+      // Вращение (Голеностоп в пятке). 
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
       meshRightFoot.rotation.z = THREE.MathUtils.degToRad(state.angles['R_Roll']);
     }
 
-    // 5. ЛОГИКА ЗАПИСИ И ВОСПРОИЗВЕДЕНИЯ
-    const btnRecord = document.getElementById('btn-record');
-    const btnStop = document.getElementById('btn-stop');
-    const btnPlay = document.getElementById('btn-play');
-    const timeline = document.getElementById('timeline');
-    const statusBadge = document.getElementById('rec-status');
-    let playInterval;
+    // === ПЛЕЕР / МАГНИТОФОН ===
+    const btnRecord = document.getElementById('btn-record'); const btnStop = document.getElementById('btn-stop'); const btnPlay = document.getElementById('btn-play');
+    const timeline = document.getElementById('timeline'); const statusBadge = document.getElementById('rec-status'); let playInterval;
 
-    btnRecord.onclick = () => {
-      isRecording = true; isPlaying = false; recordBuffer = [];
-      clearInterval(playInterval);
-      btnRecord.style.opacity = "0.5"; btnStop.style.opacity = "1"; btnPlay.style.opacity = "1";
-      statusBadge.innerText = "🔴 ИДЕТ ЗАПИСЬ..."; statusBadge.style.color = "#ff3b30";
-      timeline.disabled = true;
-    };
+    btnRecord.onclick = () => { isRecording = true; isPlaying = false; recordBuffer = []; clearInterval(playInterval); btnRecord.style.opacity = "0.5"; btnStop.style.opacity = "1"; btnPlay.style.opacity = "1"; statusBadge.innerText = "🔴 ИДЕТ ЗАПИСЬ..."; statusBadge.style.color = "#ff3b30"; timeline.disabled = true; };
+    btnStop.onclick = () => { isRecording = false; isPlaying = false; clearInterval(playInterval); btnRecord.style.opacity = "1"; statusBadge.innerText = `ЗАПИСАНО КАДРОВ: ${recordBuffer.length}`; statusBadge.style.color = "#ffcc00"; if(recordBuffer.length > 0) { timeline.disabled = false; timeline.max = recordBuffer.length - 1; timeline.value = 0; } };
+    btnPlay.onclick = () => { if(recordBuffer.length === 0) return; isRecording = false; isPlaying = true; btnRecord.style.opacity = "1"; statusBadge.innerText = "▶ ВОСПРОИЗВЕДЕНИЕ"; statusBadge.style.color = "#34c759"; timeline.disabled = false; clearInterval(playInterval); let i = parseInt(timeline.value); playInterval = setInterval(() => { if(i >= recordBuffer.length) { clearInterval(playInterval); statusBadge.innerText = "ПАУЗА"; return; } timeline.value = i; renderFrame(recordBuffer[i]); i++; }, 50); };
+    timeline.oninput = () => { if(recordBuffer.length === 0) return; isPlaying = true; clearInterval(playInterval); statusBadge.innerText = "⏸ ПРОСМОТР КАДРА"; statusBadge.style.color = "#0a84ff"; renderFrame(recordBuffer[timeline.value]); };
 
-    btnStop.onclick = () => {
-      isRecording = false; isPlaying = false; clearInterval(playInterval);
-      btnRecord.style.opacity = "1";
-      statusBadge.innerText = `ЗАПИСАНО КАДРОВ: ${recordBuffer.length}`; statusBadge.style.color = "#ffcc00";
-      if(recordBuffer.length > 0) {
-        timeline.disabled = false; timeline.max = recordBuffer.length - 1; timeline.value = 0;
-      }
-    };
-
-    btnPlay.onclick = () => {
-      if(recordBuffer.length === 0) return;
-      isRecording = false; isPlaying = true;
-      btnRecord.style.opacity = "1";
-      statusBadge.innerText = "▶ ВОСПРОИЗВЕДЕНИЕ"; statusBadge.style.color = "#34c759";
-      timeline.disabled = false;
-      
-      clearInterval(playInterval);
-      let i = parseInt(timeline.value);
-      playInterval = setInterval(() => {
-        if(i >= recordBuffer.length) { clearInterval(playInterval); statusBadge.innerText = "ПАУЗА"; return; }
-        timeline.value = i;
-        renderFrame(recordBuffer[i]); // Рисуем кадр из памяти
-        i++;
-      }, 50); // 20 fps
-    };
-
-    timeline.oninput = () => {
-      if(recordBuffer.length === 0) return;
-      isPlaying = true; clearInterval(playInterval); // Пауза при ручной перемотке
-      statusBadge.innerText = "⏸ ПРОСМОТР (ПАУЗА)"; statusBadge.style.color = "#0a84ff";
-      renderFrame(recordBuffer[timeline.value]);
-    };
-
-    // 6. BLUETOOTH ПРИЕМНИК
-    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-    const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-    const buffers = {};
+    // === BLUETOOTH ===
+    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; const buffers = {};
 
     Object.keys(CALIBRATION).forEach(sensor => {
       document.getElementById(`btn-${sensor}`).addEventListener('click', async (e) => {
         try {
           const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: sensor }], optionalServices: [UART_SERVICE] });
-          const server = await device.gatt.connect();
-          const service = await server.getPrimaryService(UART_SERVICE);
-          const characteristic = await service.getCharacteristic(UART_TX);
+          const server = await device.gatt.connect(); const service = await server.getPrimaryService(UART_SERVICE); const characteristic = await service.getCharacteristic(UART_TX);
           await characteristic.startNotifications();
           e.target.innerText = "OK"; e.target.classList.add("connected");
 
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
-            if(isPlaying) return; // Если смотрим запись, игнорируем Bluetooth
-            
-            const id = device.id;
-            if (!buffers[id]) buffers[id] = "";
-            buffers[id] += new TextDecoder().decode(event.target.value);
-            const dataLines = buffers[id].split('\n');
+            if(isPlaying) return; 
+            const id = device.id; if (!buffers[id]) buffers[id] = ""; buffers[id] += new TextDecoder().decode(event.target.value); const dataLines = buffers[id].split('\n');
             
             if (dataLines.length > 1) {
               for (let i = 0; i < dataLines.length - 1; i++) {
                 const parts = dataLines[i].trim().split(',');
                 if (parts.length === 3) {
-                  const rawFsr = parseInt(parts[0]);
-                  const pitch = parseInt(parts[1]);
-                  const roll = parseInt(parts[2]);
-                  
-                  // ЗАЩИТА ОТ ПРОПАДАНИЯ СТОПЫ (Игнорируем битые пакеты)
+                  const rawFsr = parseInt(parts[0]); const pitch = parseInt(parts[1]); const roll = parseInt(parts[2]);
                   if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
 
                   currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
-                  
                   if (sensor === 'L_Red') { currentState.angles['L_Pitch'] = pitch; currentState.angles['L_Roll'] = roll; }
                   if (sensor === 'R_Red') { currentState.angles['R_Pitch'] = pitch; currentState.angles['R_Roll'] = roll; }
                 }
               }
               buffers[id] = dataLines[dataLines.length - 1];
               renderFrame(currentState);
-
-              // Если нажата кнопка записи, сохраняем слепок данных
-              if (isRecording) {
-                recordBuffer.push(JSON.parse(JSON.stringify(currentState))); 
-              }
+              if (isRecording) recordBuffer.push(JSON.parse(JSON.stringify(currentState))); 
             }
           });
         } catch (error) { console.log(error); }
