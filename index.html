@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Фикс Кэша и Масштаба</title>
+  <title>Подометрия PRO - Стабильный Интерфейс</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,45 +11,51 @@
   <style>
     body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
     
-    .recorder-panel { background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .recorder-panel { background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
     .recorder-controls { display: flex; justify-content: space-between; gap: 10px; }
-    .btn-rec { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
+    .btn-rec { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
     #btn-record { background: #ff3b30; } #btn-stop { background: #333; color: #888; } #btn-play { background: #34c759; }
     .timeline { width: 100%; margin: 0; }
     .status-badge { text-align: center; font-size: 11px; font-weight: bold; font-family: monospace; color: #ffcc00; }
 
-    .balance-banner { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 8px; text-align: center; margin-bottom: 12px; }
+    .balance-banner { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 8px; text-align: center; margin-bottom: 10px; }
     .balance-title { font-size: 10px; color: #888; margin-bottom: 3px; font-weight: bold; text-transform: uppercase; }
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    .workspace { position: relative; width: 100%; height: 220px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
+    /* РАБОЧАЯ ЗОНА (Оптимизирована по высоте для графиков внизу) */
+    .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
+    /* Стабильные CSS-координаты кнопок относительно рабочей зоны */
     .sensor-btn { 
-      pointer-events: auto; position: absolute; width: 40px; height: 40px; border-radius: 50%; 
+      position: absolute; width: 42px; height: 42px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.3); color: white; 
       cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; 
-      box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: background-color 0.2s, box-shadow 0.2s; z-index: 20;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.8); z-index: 20;
       transform: translate(-50%, -50%); 
-      font-family: monospace; line-height: 1.0;
+      font-family: monospace; line-height: 1.1;
     }
     
     .sensor-btn .val { font-size: 11px; font-weight: bold; }
-    .sensor-btn .pct { font-size: 9px; opacity: 0.8; }
-    .sensor-btn.disconnected { font-size: 10px; font-weight: bold; }
+    .sensor-btn .pct { font-size: 8px; opacity: 0.8; }
+    .sensor-btn.disconnected { font-size: 9px; font-weight: bold; }
 
-    #btn-L_Red, #btn-R_Red { background: #ff3b30; }
-    #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
-    #btn-L_Blu, #btn-R_Blu { background: #0a84ff; }
+    #btn-L_Red { background: #ff3b30; bottom: 15%; left: 30%; }
+    #btn-L_Yel { background: #ffcc00; color: #000; top: 32%; left: 38%; }
+    #btn-L_Blu { background: #0a84ff; top: 32%; left: 18%; }
+
+    #btn-R_Red { background: #ff3b30; bottom: 15%; right: 30%; left: auto; }
+    #btn-R_Yel { background: #ffcc00; color: #000; top: 32%; right: 38%; left: auto; }
+    #btn-R_Blu { background: #0a84ff; top: 32%; right: 18%; left: auto; }
     
     .sensor-btn:active { transform: translate(-50%, -50%) scale(0.9); }
     .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.9); }
 
-    .chart-container { margin-bottom: 10px; }
-    .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; padding: 0 5px; }
+    .chart-container { margin-bottom: 8px; }
+    .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
-    canvas.chart-canvas { width: 100%; height: 90px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
+    canvas.chart-canvas { width: 100%; height: 80px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
   </style>
 </head>
 <body>
@@ -94,11 +100,11 @@
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
+    // === THREE.JS СТАБИЛЬНАЯ СЦЕНА ===
     const container3d = document.getElementById('canvas-3d');
-    const workspaceEl = document.getElementById('workspace-container');
     const scene = new THREE.Scene();
     
-    const camera = new THREE.PerspectiveCamera(35, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container3d.clientWidth, container3d.clientHeight);
     container3d.appendChild(renderer.domElement);
@@ -114,31 +120,29 @@
     dirLight.position.set(0, 10, 5); 
     scene.add(dirLight);
 
-    const uiAnchors = [];
-
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
       
-      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 50 });
+      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.85, shininess: 40 });
       const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      s.moveTo(0, -0.8); 
-      s.bezierCurveTo(sign * -0.8, -0.8, sign * -1.0, 0.2, sign * -1.0, 1.5); 
-      s.bezierCurveTo(sign * -1.1, 2.8, sign * -1.2, 4.0, sign * -1.0, 4.8);  
-      s.bezierCurveTo(sign * -0.6, 5.5, sign * 0.6, 5.5, sign * 1.0, 4.8);  
-      s.bezierCurveTo(sign * 1.2, 3.5, sign * 0.7, 2.0, sign * 0.6, 0.8);    
-      s.bezierCurveTo(sign * 0.6, -0.2, sign * 0.6, -0.8, 0, -0.8);             
+      s.moveTo(0, -0.6); 
+      s.bezierCurveTo(sign * -0.6, -0.6, sign * -0.7, 0.2, sign * -0.7, 1.2); 
+      s.bezierCurveTo(sign * -0.8, 2.5, sign * -0.9, 3.5, sign * -0.8, 4.2);  
+      s.bezierCurveTo(sign * -0.4, 4.8, sign * 0.7, 4.8, sign * 0.9, 3.8);  
+      s.bezierCurveTo(sign * 1.0, 2.8, sign * 0.5, 1.8, sign * 0.4, 0.8);    
+      s.bezierCurveTo(sign * 0.4, -0.2, sign * 0.4, -0.6, 0, -0.6);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
       const toes = [
-        { x: sign * 0.7,  y: 5.4, r: 0.45 }, 
-        { x: sign * 0.2,  y: 5.6, r: 0.35 }, 
-        { x: sign * -0.25,y: 5.4, r: 0.28 }, 
-        { x: sign * -0.65,y: 5.0, r: 0.22 }, 
-        { x: sign * -1.0, y: 4.5, r: 0.18 }  
+        { x: sign * 0.6,  y: 4.8, r: 0.35 }, 
+        { x: sign * 0.15, y: 5.0, r: 0.25 }, 
+        { x: sign * -0.2, y: 4.8, r: 0.20 }, 
+        { x: sign * -0.45,y: 4.4, r: 0.16 }, 
+        { x: sign * -0.65,y: 3.9, r: 0.13 }  
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -146,27 +150,10 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      function attachAnchor(id, x, y) {
-        const anchor = new THREE.Object3D();
-        anchor.position.set(x, y, 0.35); 
-        anchor.userData = { btnId: 'btn-' + id };
-        footGroup.add(anchor);
-        uiAnchors.push(anchor);
-      }
-
-      if (isLeft) {
-        attachAnchor('L_Red', 0.0, -0.2);       
-        attachAnchor('L_Yel', 0.8, 3.6);        
-        attachAnchor('L_Blu', -0.9, 3.2);       
-      } else {
-        attachAnchor('R_Red', 0.0, -0.2);       
-        attachAnchor('R_Yel', -0.8, 3.6);       
-        attachAnchor('R_Blu', 0.9, 3.2);        
-      }
-
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
-      wrapper.scale.set(1.6, 1.6, 1.6); // Крупный масштаб стопы
+      footGroup.position.set(0, 0, 0);     
+      wrapper.scale.set(1.0, 1.0, 1.0);
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -174,44 +161,26 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    meshLeftFoot.position.set(-2.6, 0, 0.2); 
-    meshRightFoot.position.set(2.6, 0, 0.2);
+    // Жестко фиксируем стопы в центре экрана
+    meshLeftFoot.position.set(-1.1, 0, 0.5); 
+    meshRightFoot.position.set(1.1, 0, 0.5);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
-    const gridHelper = new THREE.GridHelper(15, 15, 0x444444, 0x222222);
+    const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    camera.position.set(0, 6.5, 4.5); 
-    camera.lookAt(0, 0, 1.2); 
-
-    function updateUIElements() {
-      const halfWidth = workspaceEl.clientWidth / 2;
-      const halfHeight = workspaceEl.clientHeight / 2;
-
-      uiAnchors.forEach(anchor => {
-        const vector = new THREE.Vector3();
-        anchor.getWorldPosition(vector);
-        vector.project(camera);
-
-        const x = (vector.x * halfWidth) + halfWidth;
-        const y = -(vector.y * halfHeight) + halfHeight;
-
-        const btn = document.getElementById(anchor.userData.btnId);
-        if (btn) {
-          btn.style.left = x + 'px';
-          btn.style.top = y + 'px';
-        }
-      });
-    }
+    // Стабильная камера
+    camera.position.set(0, 7.5, 5.5); 
+    camera.lookAt(0, 0, 0.5); 
 
     function animate3D() { 
       requestAnimationFrame(animate3D); 
       renderer.render(scene, camera); 
-      updateUIElements();
     }
     animate3D();
 
+    // === ГРАФИКИ ===
     const chartOpts = { millisPerPixel: 20, responsive: true, grid: { fillStyle: '#1c1c1e', strokeStyle: '#333' }, labels: { fillStyle: '#888', precision: 0 }, minValue: 0 };
     const chartLeft = new SmoothieChart(chartOpts); const chartRight = new SmoothieChart(chartOpts);
     chartLeft.streamTo(document.getElementById('chart-left'), 100); chartRight.streamTo(document.getElementById('chart-right'), 100);
