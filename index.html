@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Широкая Стопа</title>
+  <title>Подометрия PRO - Крупный План</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -23,21 +23,21 @@
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* КОМПАКТНАЯ ВЫСОТА 3D ОКНА ДЛЯ ВМЕСТИМОСТИ ГРАФИКОВ БЕЗ ПРОКРУТКИ */
+    /* КОМПАКТНАЯ ВЫСОТА ОКНА ДЛЯ ВМЕСТИМОСТИ ГРАФИКОВ */
     .workspace { position: relative; width: 100%; height: 220px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* Кнопки датчиков (Увеличены для вывода двойного текста) */
+    /* Оптимизированные кнопки (чуть меньше, чтобы не слипались) */
     .sensor-btn { 
-      pointer-events: auto; position: absolute; width: 44px; height: 44px; border-radius: 50%; 
+      pointer-events: auto; position: absolute; width: 40px; height: 40px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.3); color: white; 
       cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: background-color 0.2s, box-shadow 0.2s; z-index: 20;
       transform: translate(-50%, -50%); 
-      font-family: monospace; line-height: 1.1;
+      font-family: monospace; line-height: 1.0;
     }
     
-    .sensor-btn .val { font-size: 12px; font-weight: bold; }
+    .sensor-btn .val { font-size: 11px; font-weight: bold; }
     .sensor-btn .pct { font-size: 9px; opacity: 0.8; }
     .sensor-btn.disconnected { font-size: 10px; font-weight: bold; }
 
@@ -101,7 +101,8 @@
     const workspaceEl = document.getElementById('workspace-container');
     const scene = new THREE.Scene();
     
-    const camera = new THREE.PerspectiveCamera(50, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
+    // Сужаем угол обзора (FOV = 40), чтобы избежать сильных перспективных искажений
+    const camera = new THREE.PerspectiveCamera(40, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container3d.clientWidth, container3d.clientHeight);
     container3d.appendChild(renderer.domElement);
@@ -119,35 +120,30 @@
 
     const uiAnchors = [];
 
-    // НОВАЯ ГЕНЕРАЦИЯ СТОПЫ (ШИРОКАЯ И РЕАЛИСТИЧНАЯ)
+    // ГЕНЕРАЦИЯ СТОПЫ
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
       
-      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8, shininess: 50 });
-      const extrudeSettings = { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
+      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 40 });
+      const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
       s.moveTo(0, -0.6); 
-      // Расширенный внешний край
       s.bezierCurveTo(sign * -0.7, -0.6, sign * -0.8, 0.2, sign * -0.8, 1.2); 
       s.bezierCurveTo(sign * -0.9, 2.5, sign * -1.0, 3.5, sign * -0.9, 4.2);  
-      // Широкая линия пальцев
       s.bezierCurveTo(sign * -0.5, 5.0, sign * 1.0, 5.0, sign * 1.2, 3.8);  
-      // Внутренняя плюсна и глубокий свод
       s.bezierCurveTo(sign * 1.3, 2.8, sign * 0.6, 1.8, sign * 0.5, 0.8);    
-      // Широкая внутренняя пятка
       s.bezierCurveTo(sign * 0.5, -0.2, sign * 0.5, -0.6, 0, -0.6);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // Расставленные пальцы
       const toes = [
-        { x: sign * 0.8,  y: 5.0, r: 0.40 }, // Большой
-        { x: sign * 0.2,  y: 5.2, r: 0.30 }, // Второй
-        { x: sign * -0.25,y: 5.0, r: 0.25 }, // Третий
-        { x: sign * -0.6, y: 4.6, r: 0.20 }, // Четвертый
-        { x: sign * -0.9, y: 4.1, r: 0.15 }  // Мизинец
+        { x: sign * 0.8,  y: 5.0, r: 0.40 }, 
+        { x: sign * 0.2,  y: 5.2, r: 0.30 }, 
+        { x: sign * -0.25,y: 5.0, r: 0.25 }, 
+        { x: sign * -0.6, y: 4.6, r: 0.20 }, 
+        { x: sign * -0.9, y: 4.1, r: 0.15 }  
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -155,30 +151,31 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // === 3D ЯКОРЯ ДЛЯ ШИРОКОЙ СТОПЫ ===
+      // === 3D ЯКОРЯ РАЗНЕСЕНЫ ПО КРАЯМ ===
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
-        anchor.position.set(x, y, 0.45); 
+        anchor.position.set(x, y, 0.35); 
         anchor.userData = { btnId: 'btn-' + id };
         footGroup.add(anchor);
         uiAnchors.push(anchor);
       }
 
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, 0.0);        // Пятка
-        attachAnchor('L_Yel', 0.85, 3.2);       // Широкая внутренняя плюсна
-        attachAnchor('L_Blu', -0.7, 2.8);       // Широкий внешний свод
+        attachAnchor('L_Red', 0.0, 0.2);        // Пятка
+        attachAnchor('L_Yel', 0.95, 3.4);       // Максимально на внутренний край
+        attachAnchor('L_Blu', -0.85, 3.0);      // Максимально на внешний край
       } else {
-        attachAnchor('R_Red', 0.0, 0.0);       
-        attachAnchor('R_Yel', -0.85, 3.2);       
-        attachAnchor('R_Blu', 0.7, 2.8);        
+        attachAnchor('R_Red', 0.0, 0.2);       
+        attachAnchor('R_Yel', -0.95, 3.4);       
+        attachAnchor('R_Blu', 0.85, 3.0);        
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
       footGroup.position.set(0, 0, 0);     
       
-      wrapper.scale.set(0.9, 0.9, 0.9); // Оптимальный масштаб
+      // УВЕЛИЧИВАЕМ МАСШТАБ
+      wrapper.scale.set(1.4, 1.4, 1.4); 
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -186,18 +183,18 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // РАЗДВИНУЛ СТОПЫ СИЛЬНЕЕ ДРУГ ОТ ДРУГА
-    meshLeftFoot.position.set(-2.0, 0, 1.0); 
-    meshRightFoot.position.set(2.0, 0, 1.0);
+    // РАЗДВИГАЕМ СТОПЫ И ПОДНИМАЕМ ИХ БЛИЖЕ К ЦЕНТРУ ЭКРАНА
+    meshLeftFoot.position.set(-2.2, 0, 0.5); 
+    meshRightFoot.position.set(2.2, 0, 0.5);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
-    const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
+    const gridHelper = new THREE.GridHelper(15, 15, 0x444444, 0x222222);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // ОПТИМИЗИРОВАННАЯ КАМЕРА (Для высоты окна 220px)
-    camera.position.set(0, 10.0, 6.0); 
-    camera.lookAt(0, 0, 1.0); 
+    // ПРИБЛИЖАЕМ КАМЕРУ (Жесткий Zoom)
+    camera.position.set(0, 8.0, 4.0); 
+    camera.lookAt(0, 0, 1.5); 
 
     // === ДВИЖОК ПРОЕКЦИИ UI ===
     function updateUIElements() {
@@ -236,13 +233,11 @@
     chartLeft.addTimeSeries(lines['L_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
     chartRight.addTimeSeries(lines['R_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
 
-    // Функция умного обновления кнопок
     function updateBtnDisplay(id, value, total) {
       const btn = document.getElementById(id);
       if (btn && btn.classList.contains('connected')) {
         if (value > 0) {
             let pct = (total > 0) ? Math.round((value / total) * 100) : 0;
-            // Показываем АБСОЛЮТНОЕ значение крупно, а процент - мелко
             btn.innerHTML = `<span class="val">${value}</span><span class="pct">${pct}%</span>`;
         } else {
             btn.innerHTML = `<span class="val">0</span>`;
@@ -261,7 +256,6 @@
         document.getElementById('right-pct').innerText = Math.round((rTot / tTot) * 100) + '%';
       } else { document.getElementById('left-pct').innerText = '0%'; document.getElementById('right-pct').innerText = '0%'; }
 
-      // Умное обновление кнопок
       updateBtnDisplay('btn-L_Red', state.calValues['L_Red'], lTot);
       updateBtnDisplay('btn-L_Yel', state.calValues['L_Yel'], lTot);
       updateBtnDisplay('btn-L_Blu', state.calValues['L_Blu'], lTot);
