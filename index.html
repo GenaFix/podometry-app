@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Точная Анатомия</title>
+  <title>Подометрия PRO - Угловая 3D Камера</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -33,24 +33,25 @@
     .panel-left { left: 0; border-right: 1px dashed rgba(255,255,255,0.15); }
     .panel-right { right: 0; }
     
-    /* Проценты - Сделаны компактнее */
+    /* Проценты */
     .stats-block { pointer-events: auto; background: rgba(28,28,30, 0.6); margin: 5px; padding: 5px; border-radius: 8px; text-align: center; font-size: 9px; color: #aaa; backdrop-filter: blur(3px); line-height: 1.3; }
     .stats-block span { font-size: 11px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 28px; text-align: left; }
     
-    /* Кнопки датчиков прямо на 3D модели */
-    .sensor-btn { pointer-events: auto; position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: 0.2s; }
+    /* Кнопки датчиков */
+    .sensor-btn { pointer-events: auto; position: absolute; width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: 0.2s; }
     .sensor-btn:active { transform: scale(0.9); }
     .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.8); }
 
-    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ КНОПОК ДЛЯ ЛЕВОЙ НОГИ */
-    #btn-L_Red { bottom: 10%; left: 50%; transform: translateX(-50%); background: #ff3b30; } /* Пятка */
-    #btn-L_Yel { top: 40%; left: 70%; transform: translateX(-50%); background: #ffcc00; color: #000; } /* Внутри */
-    #btn-L_Blu { top: 48%; left: 28%; transform: translateX(-50%); background: #0a84ff; } /* Снаружи */
+    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ (Адаптировано под угол 45 градусов) */
+    /* ЛЕВАЯ НОГА */
+    #btn-L_Red { bottom: 10%; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
+    #btn-L_Yel { top: 40%; left: 68%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
+    #btn-L_Blu { top: 46%; left: 28%; transform: translateX(-50%); background: #0a84ff; } 
     
-    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ КНОПОК ДЛЯ ПРАВОЙ НОГИ */
-    #btn-R_Red { bottom: 10%; left: 50%; transform: translateX(-50%); background: #ff3b30; } /* Пятка */
-    #btn-R_Yel { top: 40%; left: 30%; transform: translateX(-50%); background: #ffcc00; color: #000; } /* Внутри */
-    #btn-R_Blu { top: 48%; left: 72%; transform: translateX(-50%); background: #0a84ff; } /* Снаружи */
+    /* ПРАВАЯ НОГА */
+    #btn-R_Red { bottom: 10%; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
+    #btn-R_Yel { top: 40%; left: 32%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
+    #btn-R_Blu { top: 46%; left: 72%; transform: translateX(-50%); background: #0a84ff; } 
 
     /* Графики */
     .chart-container { margin-bottom: 10px; }
@@ -83,8 +84,7 @@
       <div class="stats-block">
         ЛЕВАЯ СТОПА<br>
         <span id="l-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
-        <span id="l-in" style="color:#ffcc00">0%</span> (ВНУТР) | 
-        <span id="l-out" style="color:#0a84ff">0%</span> (ВНЕШ)
+        <span id="l-in" style="color:#ffcc00">0%</span> (ВНУТР) | <span id="l-out" style="color:#0a84ff">0%</span> (ВНЕШ)
       </div>
       <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
       <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
@@ -95,8 +95,7 @@
       <div class="stats-block">
         ПРАВАЯ СТОПА<br>
         <span id="r-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
-        <span id="r-in" style="color:#ffcc00">0%</span> (ВНУТР) | 
-        <span id="r-out" style="color:#0a84ff">0%</span> (ВНЕШ)
+        <span id="r-in" style="color:#ffcc00">0%</span> (ВНУТР) | <span id="r-out" style="color:#0a84ff">0%</span> (ВНЕШ)
       </div>
       <div id="btn-R_Yel" class="sensor-btn">R_Yel</div>
       <div id="btn-R_Blu" class="sensor-btn">R_Blu</div>
@@ -138,22 +137,24 @@
       const material = new THREE.MeshPhongMaterial({ color: 0x4a4a4a, transparent: true, opacity: 0.9, shininess: 40 });
       const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
 
+      // Идеальный анатомический контур
       const s = new THREE.Shape();
-      s.moveTo(0, 0); 
-      s.bezierCurveTo(sign * -0.4, 0.2, sign * -0.8, 1.5, sign * -0.8, 2.5); 
-      s.bezierCurveTo(sign * -0.8, 3.5, sign * -0.5, 4.2, sign * 0.1, 4.4);  
-      s.bezierCurveTo(sign * 0.7, 4.5, sign * 1.0, 3.8, sign * 0.9, 2.8);    
-      s.bezierCurveTo(sign * 0.8, 1.8, sign * 0.2, 1.5, sign * 0.2, 0.8);    
-      s.bezierCurveTo(sign * 0.2, 0.2, sign * -0.1, -0.1, 0, 0);             
+      s.moveTo(0, 0); // Пятка
+      s.bezierCurveTo(sign * -0.4, 0.1, sign * -0.6, 1.0, sign * -0.6, 2.0); // Внешний край стопы
+      s.bezierCurveTo(sign * -0.6, 3.2, sign * -0.5, 4.0, sign * 0.0, 4.2);  // До мизинца
+      s.bezierCurveTo(sign * 0.5, 4.3, sign * 0.9, 3.6, sign * 0.9, 2.8);    // Широкая плюсна (большой палец)
+      s.bezierCurveTo(sign * 0.9, 2.0, sign * 0.2, 1.5, sign * 0.2, 0.8);    // Глубокий свод
+      s.bezierCurveTo(sign * 0.2, 0.2, sign * -0.1, -0.1, 0, 0);             // Возврат к пятке
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
+      // 5 пальцев
       const toesData = [
-        { x: sign * 0.55,  y: 4.8, r: 0.35 }, 
-        { x: sign * 0.15,  y: 5.0, r: 0.25 }, 
-        { x: sign * -0.15, y: 4.8, r: 0.20 }, 
-        { x: sign * -0.4,  y: 4.5, r: 0.16 }, 
-        { x: sign * -0.6,  y: 4.1, r: 0.14 }  
+        { x: sign * 0.5,  y: 4.6, r: 0.35 }, 
+        { x: sign * 0.1,  y: 4.8, r: 0.25 }, 
+        { x: sign * -0.2, y: 4.7, r: 0.20 }, 
+        { x: sign * -0.45,y: 4.5, r: 0.18 }, 
+        { x: sign * -0.65,y: 4.2, r: 0.15 }  
       ];
       toesData.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -162,9 +163,10 @@
       });
 
       const wrapper = new THREE.Group();
-      footGroup.rotation.x = -Math.PI / 2; 
-      footGroup.position.set(0, 0, -1.8);  
-      wrapper.scale.set(0.85, 0.85, 0.85); // Масштабируем, чтобы точно влезло
+      footGroup.rotation.x = -Math.PI / 2; // Кладем на пол
+      footGroup.position.set(0, 0, 0);     // Центр вращения - ПЯТКА (0,0,0)
+      
+      wrapper.scale.set(0.7, 0.7, 0.7); // Уменьшаем масштаб для лучшего обзора
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -172,19 +174,20 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Опускаем стопы сильно вниз и ближе к камере, чтобы они были по центру окна
-    meshLeftFoot.position.set(-1.6, 0, 0.8); 
-    meshRightFoot.position.set(1.6, 0, 0.8);
+    // Сдвигаем стопы ВНИЗ (к камере) и центрируем
+    meshLeftFoot.position.set(-1.4, 0, 2.0); 
+    meshRightFoot.position.set(1.4, 0, 2.0);
     
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
+    // Сетка
     const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x222222);
     gridHelper.position.y = -0.5;
     scene.add(gridHelper);
 
-    // Камера смотрит прямо на стопы сверху-сзади
-    camera.position.set(0, 9.5, 4.5); 
-    camera.lookAt(0, 0, 1.0); 
+    // КАМЕРА ПОД УГЛОМ (Видна глубина и подъемы)
+    camera.position.set(0, 6.0, 7.5); 
+    camera.lookAt(0, -0.5, 0.5); 
 
     function animate3D() { requestAnimationFrame(animate3D); renderer.render(scene, camera); }
     animate3D();
@@ -226,6 +229,7 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
+      // Применяем вращение от гироскопа
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
