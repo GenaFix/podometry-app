@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Финальная Архитектура</title>
+  <title>Подометрия PRO - Умная Синхронизация 3D и UI</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,7 +11,6 @@
   <style>
     body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
     
-    /* Магнитофон */
     .recorder-panel { background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
     .recorder-controls { display: flex; justify-content: space-between; gap: 10px; }
     .btn-rec { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
@@ -19,44 +18,43 @@
     .timeline { width: 100%; margin: 0; }
     .status-badge { text-align: center; font-size: 11px; font-weight: bold; font-family: monospace; color: #ffcc00; }
 
-    /* Общий баланс */
     .balance-banner { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 8px; text-align: center; margin-bottom: 12px; }
     .balance-title { font-size: 10px; color: #888; margin-bottom: 3px; font-weight: bold; text-transform: uppercase; }
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* ИНТЕРАКТИВНЫЙ БЛОК (3D + UI) */
-    .workspace { position: relative; width: 100%; height: 340px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
+    /* ИНТЕРАКТИВНЫЙ БЛОК */
+    .workspace { position: relative; width: 100%; height: 320px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
     .overlay-panel { position: absolute; top: 0; width: 50%; height: 100%; pointer-events: none; }
     .panel-left { left: 0; border-right: 1px dashed rgba(255,255,255,0.15); }
     .panel-right { right: 0; }
     
-    /* Проценты - Фиксированы вверху панелей */
     .stats-block { position: absolute; top: 5px; left: 5px; right: 5px; pointer-events: auto; background: rgba(28,28,30, 0.75); padding: 5px; border-radius: 8px; text-align: center; font-size: 9px; color: #aaa; backdrop-filter: blur(4px); line-height: 1.4; border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
     .stats-block span { font-size: 12px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 32px; text-align: left; }
     
-    /* Кнопки датчиков прямо на 3D модели */
-    .sensor-btn { pointer-events: auto; position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: 0.2s; z-index: 20; }
-    .sensor-btn:active { transform: scale(0.9); }
+    /* Кнопки датчиков (Жесткие CSS координаты удалены, теперь ими управляет JavaScript 3D-движка) */
+    .sensor-btn { 
+      pointer-events: auto; position: absolute; width: 42px; height: 42px; border-radius: 50%; 
+      border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; 
+      cursor: pointer; display: flex; justify-content: center; align-items: center; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: background-color 0.2s, box-shadow 0.2s; z-index: 20;
+      transform: translate(-50%, -50%); /* Центруем кнопку строго по выданной координате */
+    }
+    
+    /* Цвета кнопок */
+    #btn-L_Red, #btn-R_Red { background: #ff3b30; }
+    #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
+    #btn-L_Blu, #btn-R_Blu { background: #0a84ff; }
+    
+    .sensor-btn:active { transform: translate(-50%, -50%) scale(0.9); }
     .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.9); }
 
-    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ ДЛЯ ЛЕВОЙ НОГИ */
-    #btn-L_Red { bottom: 15px; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
-    #btn-L_Yel { top: 38%; left: 72%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
-    #btn-L_Blu { top: 48%; left: 25%; transform: translateX(-50%); background: #0a84ff; } 
-    
-    /* ТОЧНОЕ ПОЗИЦИОНИРОВАНИЕ ДЛЯ ПРАВОЙ НОГИ */
-    #btn-R_Red { bottom: 15px; left: 50%; transform: translateX(-50%); background: #ff3b30; } 
-    #btn-R_Yel { top: 38%; left: 28%; transform: translateX(-50%); background: #ffcc00; color: #000; } 
-    #btn-R_Blu { top: 48%; left: 75%; transform: translateX(-50%); background: #0a84ff; } 
-
-    /* Графики */
     .chart-container { margin-bottom: 10px; }
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
-    canvas.chart-canvas { width: 100%; height: 95px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
+    canvas.chart-canvas { width: 100%; height: 100px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
   </style>
 </head>
 <body>
@@ -76,7 +74,7 @@
     <div class="balance-values">ЛЕВ: <span id="left-pct">0%</span> | ПРАВ: <span id="right-pct">0%</span></div>
   </div>
 
-  <div class="workspace">
+  <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
     
     <div class="overlay-panel panel-left">
@@ -85,9 +83,6 @@
         <span id="l-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
         <span id="l-in" style="color:#ffcc00">0%</span> (ВНУТР) | <span id="l-out" style="color:#0a84ff">0%</span> (ВНЕШ)
       </div>
-      <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
-      <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
-      <div id="btn-L_Red" class="sensor-btn">L_Red</div>
     </div>
     
     <div class="overlay-panel panel-right">
@@ -96,10 +91,15 @@
         <span id="r-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
         <span id="r-in" style="color:#ffcc00">0%</span> (ВНУТР) | <span id="r-out" style="color:#0a84ff">0%</span> (ВНЕШ)
       </div>
-      <div id="btn-R_Yel" class="sensor-btn">R_Yel</div>
-      <div id="btn-R_Blu" class="sensor-btn">R_Blu</div>
-      <div id="btn-R_Red" class="sensor-btn">R_Red</div>
     </div>
+
+    <!-- Кнопки вынесены в общий контейнер для свободного перемещения -->
+    <div id="btn-L_Red" class="sensor-btn">L_Red</div>
+    <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
+    <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
+    <div id="btn-R_Red" class="sensor-btn">R_Red</div>
+    <div id="btn-R_Yel" class="sensor-btn">R_Yel</div>
+    <div id="btn-R_Blu" class="sensor-btn">R_Blu</div>
   </div>
 
   <div class="chart-container">
@@ -116,17 +116,16 @@
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // === THREE.JS: ТОЧНАЯ КАЛИБРОВКА КАМЕРЫ ===
+    // === THREE.JS ФУНДАМЕНТАЛЬНАЯ НАСТРОЙКА ===
     const container3d = document.getElementById('canvas-3d');
+    const workspaceEl = document.getElementById('workspace-container');
     const scene = new THREE.Scene();
     
-    // Адаптивная камера для мобильных экранов
     const camera = new THREE.PerspectiveCamera(50, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container3d.clientWidth, container3d.clientHeight);
     container3d.appendChild(renderer.domElement);
 
-    // Защита от искажений при повороте экрана
     window.addEventListener('resize', () => {
       camera.aspect = container3d.clientWidth / container3d.clientHeight;
       camera.updateProjectionMatrix();
@@ -138,31 +137,32 @@
     dirLight.position.set(0, 10, 5); 
     scene.add(dirLight);
 
-    // === ГЕНЕРАЦИЯ АНАТОМИЧЕСКОЙ СТОПЫ ===
+    // Массив для хранения 3D-якорей кнопок
+    const uiAnchors = [];
+
+    // ГЕНЕРАЦИЯ ТОЧНОЙ АНАТОМИЧЕСКОЙ СТОПЫ
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
       
-      const material = new THREE.MeshPhongMaterial({ color: 0x4a4a4a, transparent: true, opacity: 0.95, shininess: 30 });
-      const extrudeSettings = { depth: 0.35, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
+      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 50 });
+      const extrudeSettings = { depth: 0.4, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      s.moveTo(0, 0); // Пятка
-      s.bezierCurveTo(sign * -0.3, 0.2, sign * -0.4, 1.5, sign * -0.45, 2.5); // Внешний край стопы
-      s.bezierCurveTo(sign * -0.5, 3.5, sign * -0.3, 4.2, sign * 0.0, 4.4);  // К мизинцу
-      s.bezierCurveTo(sign * 0.4, 4.5, sign * 0.9, 4.0, sign * 0.85, 3.0);   // Плюсна (под пальцами)
-      s.bezierCurveTo(sign * 0.8, 2.0, sign * 0.1, 1.5, sign * 0.15, 0.8);   // Глубокая арка свода
-      s.bezierCurveTo(sign * 0.2, 0.2, sign * 0.1, -0.1, 0, 0);              // Обратно к пятке
+      s.moveTo(0, 0); 
+      s.bezierCurveTo(sign * -0.5, 0, sign * -0.8, 1.5, sign * -0.7, 3.0); 
+      s.bezierCurveTo(sign * -0.6, 4.0, sign * 0.6, 4.5, sign * 0.8, 3.5);  
+      s.bezierCurveTo(sign * 1.0, 2.5, sign * 0.2, 1.0, sign * 0.3, -0.5);    
+      s.bezierCurveTo(sign * 0.3, -1.0, sign * 0.1, -1.0, 0, 0);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // Пальцы стопы
       const toes = [
-        { x: sign * 0.65, y: 4.5, r: 0.32 }, // Большой палец
-        { x: sign * 0.3,  y: 4.7, r: 0.22 }, // Второй
-        { x: sign * 0.0,  y: 4.6, r: 0.18 }, // Третий
-        { x: sign * -0.25,y: 4.4, r: 0.16 }, // Четвертый
-        { x: sign * -0.45,y: 4.1, r: 0.14 }  // Мизинец
+        { x: sign * 0.6,  y: 4.2, r: 0.35 }, 
+        { x: sign * 0.2,  y: 4.3, r: 0.25 }, 
+        { x: sign * -0.15,y: 4.1, r: 0.20 }, 
+        { x: sign * -0.4, y: 3.8, r: 0.18 }, 
+        { x: sign * -0.6, y: 3.4, r: 0.15 }  
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -170,9 +170,28 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
+      // === СОЗДАНИЕ 3D ЯКОРЕЙ ДЛЯ КНОПОК ===
+      function attachAnchor(id, x, y) {
+        const anchor = new THREE.Object3D();
+        anchor.position.set(x, y, 0.45); // Чуть выше поверхности пластика (0.4)
+        anchor.userData = { btnId: 'btn-' + id };
+        footGroup.add(anchor);
+        uiAnchors.push(anchor);
+      }
+
+      if (isLeft) {
+        attachAnchor('L_Red', 0.05, 0.3);       // Пятка
+        attachAnchor('L_Yel', 0.8, 2.8);        // Внутренняя плюсна
+        attachAnchor('L_Blu', -0.6, 2.4);       // Внешний свод
+      } else {
+        attachAnchor('R_Red', -0.05, 0.3);      // Пятка
+        attachAnchor('R_Yel', -0.8, 2.8);       // Внутренняя плюсна
+        attachAnchor('R_Blu', 0.6, 2.4);        // Внешний свод
+      }
+
       const wrapper = new THREE.Group();
-      footGroup.rotation.x = -Math.PI / 2; // Кладем горизонтально
-      footGroup.position.set(0, 0, 0);     // Пятка находится строго в нулевой координате
+      footGroup.rotation.x = -Math.PI / 2; 
+      footGroup.position.set(0, 0, 0);     
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -180,21 +199,48 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Центрируем стопы в их половинах экрана. Сдвигаем по Z вперед, чтобы они не улетали вверх!
-    meshLeftFoot.position.set(-1.4, 0, 1.5); 
-    meshRightFoot.position.set(1.4, 0, 1.5);
+    meshLeftFoot.position.set(-1.6, 0, 1.0); 
+    meshRightFoot.position.set(1.6, 0, 1.0);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
-    // Сетка на уровне пола
-    const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+    const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // === КАМЕРА (Идеальный угол 45 градусов сверху-сзади) ===
-    camera.position.set(0, 8.5, 7.5); 
-    camera.lookAt(0, 0, 0); 
+    camera.position.set(0, 7.5, 6.5); 
+    camera.lookAt(0, 0, 1.5); 
 
-    function animate3D() { requestAnimationFrame(animate3D); renderer.render(scene, camera); }
+    // === ДВИЖОК ПРОЕКЦИИ (МАГИЯ ПРИВЯЗКИ 3D К UI) ===
+    function updateUIElements() {
+      const halfWidth = workspaceEl.clientWidth / 2;
+      const halfHeight = workspaceEl.clientHeight / 2;
+
+      uiAnchors.forEach(anchor => {
+        // Берем абсолютную 3D координату точки в мире
+        const vector = new THREE.Vector3();
+        anchor.getWorldPosition(vector);
+        
+        // Проецируем через линзу камеры на 2D экран
+        vector.project(camera);
+
+        // Переводим в пиксели
+        const x = (vector.x * halfWidth) + halfWidth;
+        const y = -(vector.y * halfHeight) + halfHeight;
+
+        // Двигаем HTML кнопку
+        const btn = document.getElementById(anchor.userData.btnId);
+        if (btn) {
+          btn.style.left = x + 'px';
+          btn.style.top = y + 'px';
+        }
+      });
+    }
+
+    function animate3D() { 
+      requestAnimationFrame(animate3D); 
+      renderer.render(scene, camera); 
+      updateUIElements(); // Синхронизируем кнопки каждый кадр
+    }
     animate3D();
 
     // === ГРАФИКИ ===
@@ -234,7 +280,7 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Применяем вращение от гироскопа (Кинематика)
+      // Кинематика вращения. Кнопки будут летать за стопой автоматически!
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
