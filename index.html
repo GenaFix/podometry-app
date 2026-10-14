@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Встроенный Вертикальный Ползунок</title>
+  <title>Подометрия PRO - Финальная Версия</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -35,7 +35,7 @@
     }
     
     .vertical-slider {
-      writing-mode: vertical-lr; direction: rtl; /* Превращаем в вертикальный слайдер */
+      writing-mode: vertical-lr; direction: rtl;
       width: 6px; height: 130px; accent-color: #0a84ff;
       background: rgba(255,255,255,0.1); border-radius: 3px;
       pointer-events: auto; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;
@@ -92,7 +92,7 @@
     
     <!-- Вертикальный ползунок между стопами -->
     <div class="vertical-slider-container">
-      <input type="range" id="camera-angle-slider" class="vertical-slider" min="1.5" max="7.5" step="0.2" value="4.2">
+      <input type="range" id="camera-angle-slider" class="vertical-slider" min="2.0" max="6.5" step="0.2" value="3.8">
     </div>
 
     <div id="btn-L_Red" class="sensor-btn disconnected">L_Red</div>
@@ -198,11 +198,12 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    meshLeftFoot.position.set(-1.8, 0, 0.2); 
-    meshLeftFoot.rotation.y = Math.PI * 0.05;
+    // Строго ровные и параллельные стопы, опущенные ниже в центр экрана
+    meshLeftFoot.position.set(-1.8, -0.3, 0.2); 
+    meshLeftFoot.rotation.y = 0;
 
-    meshRightFoot.position.set(1.8, 0, 0.2); 
-    meshRightFoot.rotation.y = -Math.PI * 0.05;
+    meshRightFoot.position.set(1.8, -0.3, 0.2); 
+    meshRightFoot.rotation.y = 0;
 
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
@@ -210,13 +211,12 @@
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // Управление высотой взгляда с вертикального слайдера между стопами
     const angleSlider = document.getElementById('camera-angle-slider');
 
     function updateCameraPosition() {
       const height = parseFloat(angleSlider.value);
-      camera.position.set(0, height, 6.0 - (height * 0.3));
-      camera.lookAt(0, 0, 0);
+      camera.position.set(0, height, 5.5 - (height * 0.25));
+      camera.lookAt(0, -0.3, 0);
     }
 
     angleSlider.oninput = updateCameraPosition;
@@ -293,11 +293,11 @@
       });
 
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
-      meshLeftFoot.rotation.y = (Math.PI * 0.05) + THREE.MathUtils.degToRad(state.angles['L_Roll'] * 0.2);
+      meshLeftFoot.rotation.y = THREE.MathUtils.degToRad(state.angles['L_Roll'] * 0.2);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
 
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
-      meshRightFoot.rotation.y = (-Math.PI * 0.05) + THREE.MathUtils.degToRad(state.angles['R_Roll'] * 0.2);
+      meshRightFoot.rotation.y = THREE.MathUtils.degToRad(state.angles['R_Roll'] * 0.2);
       meshRightFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['R_Roll']);
     }
 
