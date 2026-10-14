@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Ровная Широкая Стопа</title>
+  <title>Подометрия PRO - Анатомически Правильная Стопа</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,9 +27,9 @@
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* Синхронизированные кнопки датчиков */
+    /* Кнопки датчиков */
     .sensor-btn { 
-      position: absolute; width: 40px; height: 40px; border-radius: 50%; 
+      position: absolute; width: 38px; height: 38px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.4); color: white; 
       cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); z-index: 20;
@@ -40,7 +40,7 @@
     
     .sensor-btn .val { font-size: 10px; font-weight: bold; }
     .sensor-btn .pct { font-size: 7px; opacity: 0.9; }
-    .sensor-btn.disconnected { font-size: 9px; font-weight: bold; }
+    .sensor-btn.disconnected { font-size: 8px; font-weight: bold; }
 
     #btn-L_Red, #btn-R_Red { background: #ff3b30; }
     #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
@@ -128,23 +128,23 @@
       const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      // Строго симметричная, широкая и ровная форма стопы без заворотов внутрь
-      s.moveTo(0, -0.8); 
-      s.bezierCurveTo(sign * -0.8, -0.8, sign * -0.9, 0.2, sign * -0.9, 1.4); 
-      s.bezierCurveTo(sign * -0.9, 2.6, sign * -0.9, 3.6, sign * -0.8, 4.3);  
-      s.bezierCurveTo(sign * -0.5, 5.0, sign * 0.5, 5.0, sign * 0.8, 4.3);  
-      s.bezierCurveTo(sign * 0.9, 3.6, sign * 0.9, 2.6, sign * 0.9, 1.4);    
-      s.bezierCurveTo(sign * 0.9, 0.2, sign * 0.8, -0.8, 0, -0.8);             
+      // Анатомически правильная форма: узкая пятка снизу, широкая плюсна вверху, ровные края
+      s.moveTo(0, -1.0); 
+      s.bezierCurveTo(sign * -0.5, -1.0, sign * -0.6, -0.2, sign * -0.6, 0.8);  // Узкая пятка
+      s.bezierCurveTo(sign * -0.6, 2.0, sign * -0.9, 3.2, sign * -0.8, 4.2);   // Внешний свод
+      s.bezierCurveTo(sign * -0.5, 4.8, sign * 0.5, 4.8, sign * 0.8, 4.2);    // Широкая линия под пальцами
+      s.bezierCurveTo(sign * 0.9, 3.2, sign * 0.6, 2.0, sign * 0.6, 0.8);    // Внутренний свод (арка)
+      s.bezierCurveTo(sign * 0.6, -0.2, sign * 0.5, -1.0, 0, -1.0);             // Возврат к пятке
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // Ровный ряд пальцев
+      // Набор пальцев (широкий передний отдел)
       const toes = [
-        { x: sign * 0.65, y: 4.8, r: 0.38 }, 
-        { x: sign * 0.25, y: 5.0, r: 0.28 }, 
-        { x: sign * -0.1, y: 4.9, r: 0.22 }, 
-        { x: sign * -0.45,y: 4.6, r: 0.18 }, 
-        { x: sign * -0.75,y: 4.2, r: 0.14 }  
+        { x: sign * 0.6,  y: 4.6, r: 0.35 }, // Большой палец
+        { x: sign * 0.2,  y: 4.8, r: 0.25 }, 
+        { x: sign * -0.15,y: 4.7, r: 0.20 }, 
+        { x: sign * -0.45,y: 4.4, r: 0.16 }, 
+        { x: sign * -0.7, y: 4.0, r: 0.13 }  // Мизинец
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -160,20 +160,20 @@
         uiAnchors.push(anchor);
       }
 
-      // Широко расставленные якоря для датчиков по краям стопы
+      // Точные анатомические точки для датчиков
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, -0.3); // Пятка
-        attachAnchor('L_Yel', 0.65, 3.0); // Внутренняя плюсна
-        attachAnchor('L_Blu', -0.65, 3.0);// Внешний свод
+        attachAnchor('L_Red', 0.0, -0.6);  // Пятка
+        attachAnchor('L_Yel', 0.55, 3.0);  // Внутренняя плюсна
+        attachAnchor('L_Blu', -0.55, 2.8); // Внешний свод
       } else {
-        attachAnchor('R_Red', 0.0, -0.3); 
-        attachAnchor('R_Yel', -0.65, 3.0); 
-        attachAnchor('R_Blu', 0.65, 3.0);  
+        attachAnchor('R_Red', 0.0, -0.6);  
+        attachAnchor('R_Yel', -0.55, 3.0); 
+        attachAnchor('R_Blu', 0.55, 2.8);  
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
-      wrapper.scale.set(1.2, 1.2, 1.2);
+      wrapper.scale.set(1.25, 1.25, 1.25);
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -181,16 +181,16 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Широко раздвигаем левую и правую стопы
-    meshLeftFoot.position.set(-1.7, 0, 0.2); 
-    meshRightFoot.position.set(1.7, 0, 0.2);
+    // Ровно и параллельно раздвинутые стопы
+    meshLeftFoot.position.set(-1.6, 0, 0.2); 
+    meshRightFoot.position.set(1.6, 0, 0.2);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // Удобный профессиональный ракурс
+    // Удобный ракурс со спины
     camera.position.set(0, 5.0, 5.5); 
     camera.lookAt(0, 0, -0.2); 
 
