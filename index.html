@@ -9,15 +9,13 @@
   <style>
     body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; }
     
-    /* Панель баланса (вместо старой кнопки ТАРА) */
+    /* Панель глобального баланса */
     .balance-banner { 
       background: #1c1c1e; border: 2px solid #333; border-radius: 12px; padding: 15px; 
       text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
     .balance-title { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; }
     .balance-values { font-size: 24px; font-weight: bold; }
-    .bal-left { color: #fff; }
-    .bal-right { color: #fff; }
 
     /* Блоки кнопок датчиков */
     .panels-container { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -25,14 +23,19 @@
       background: #1c1c1e; border-radius: 12px; padding: 15px; flex: 1; 
       display: flex; flex-direction: column; align-items: center; 
     }
-    .sensor-panel h3 { margin: 0 0 15px 0; font-size: 14px; color: #aaa; text-transform: uppercase; }
+    .sensor-panel h3 { margin: 0 0 10px 0; font-size: 14px; color: #aaa; text-transform: uppercase; }
+    
+    /* Локальный баланс стопы */
+    .foot-balance { font-size: 11px; color: #888; text-align: center; margin-bottom: 15px; width: 100%; font-weight: bold; }
+    .foot-balance span { font-size: 13px; }
+
     .buttons-grid { 
       display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; justify-items: center; 
     }
     
-    /* Круглые кнопки */
+    /* Круглые кнопки - цвета больше не пропадают! */
     .btn-circle { 
-      width: 55px; height: 55px; border-radius: 50%; border: none; 
+      width: 55px; height: 55px; border-radius: 50%; border: 3px solid transparent; 
       color: white; font-weight: bold; font-size: 12px; cursor: pointer; 
       box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;
     }
@@ -40,7 +43,9 @@
     .bg-blue { background-color: #0a84ff; }
     .bg-yellow { background-color: #ffcc00; color: #000; }
     .bg-red { background-color: #ff3b30; }
-    .connected { background-color: #444 !important; color: #888 !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+    
+    /* Эффект подключения: свечение вокруг кнопки */
+    .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.6); }
     
     /* Графики */
     .chart-container { margin-bottom: 15px; }
@@ -58,14 +63,21 @@
   <div class="balance-banner">
     <div class="balance-title">ОБЩИЙ БАЛАНС ВЕСА</div>
     <div class="balance-values">
-      ЛЕВ: <span id="left-pct" class="bal-left">0%</span> &nbsp;|&nbsp; ПРАВ: <span id="right-pct" class="bal-right">0%</span>
+      ЛЕВ: <span id="left-pct">0%</span> &nbsp;|&nbsp; ПРАВ: <span id="right-pct">0%</span>
     </div>
   </div>
 
   <!-- Панели подключения датчиков -->
   <div class="panels-container">
+    
+    <!-- ЛЕВАЯ СТОПА -->
     <div class="sensor-panel">
       <h3>Левая (Left)</h3>
+      <div class="foot-balance">
+        ПЯТКА: <span id="l-heel" style="color:#ff3b30">0%</span><br>
+        ВНУТР: <span id="l-in" style="color:#ffcc00">0%</span> | 
+        ВНЕШ: <span id="l-out" style="color:#0a84ff">0%</span>
+      </div>
       <div class="buttons-grid">
         <button id="btn-L_Blu" class="btn-circle bg-blue">L_Blu</button>
         <button id="btn-L_Yel" class="btn-circle bg-yellow">L_Yel</button>
@@ -73,8 +85,14 @@
       </div>
     </div>
     
+    <!-- ПРАВАЯ СТОПА -->
     <div class="sensor-panel">
       <h3>Правая (Right)</h3>
+      <div class="foot-balance">
+        ПЯТКА: <span id="r-heel" style="color:#ff3b30">0%</span><br>
+        ВНУТР: <span id="r-in" style="color:#ffcc00">0%</span> | 
+        ВНЕШ: <span id="r-out" style="color:#0a84ff">0%</span>
+      </div>
       <div class="buttons-grid">
         <button id="btn-R_Yel" class="btn-circle bg-yellow">R_Yel</button>
         <button id="btn-R_Blu" class="btn-circle bg-blue">R_Blu</button>
@@ -111,31 +129,25 @@
 
   <script>
     // ==========================================
-    // 1. ЭТАЛОННЫЕ КОЭФФИЦИЕНТЫ (Ваши замеры 5 кг)
+    // 1. ЭТАЛОННЫЕ КОЭФФИЦИЕНТЫ
     // ==========================================
     const CALIBRATION = {
-      'L_Red': 1.408,
-      'L_Yel': 6.667,
-      'L_Blu': 0.840,
-      'R_Red': 3.125,
-      'R_Yel': 0.556,
-      'R_Blu': 1.786
+      'L_Red': 1.408, 'L_Yel': 6.667, 'L_Blu': 0.840,
+      'R_Red': 3.125, 'R_Yel': 0.556, 'R_Blu': 1.786
     };
 
-    // Хранилище чистых (откалиброванных) значений
     const calValues = {
       'L_Red': 0, 'L_Yel': 0, 'L_Blu': 0,
       'R_Red': 0, 'R_Yel': 0, 'R_Blu': 0
     };
 
     // ==========================================
-    // 2. НАСТРОЙКА ГРАФИКОВ (SmoothieChart)
+    // 2. НАСТРОЙКА ГРАФИКОВ
     // ==========================================
     const chartOptions = {
       millisPerPixel: 20, responsive: true,
       grid: { fillStyle: '#1c1c1e', strokeStyle: '#333', verticalSections: 4 },
-      labels: { fillStyle: '#888', precision: 0 },
-      minValue: 0
+      labels: { fillStyle: '#888', precision: 0 }, minValue: 0
     };
     
     const chartLeft = new SmoothieChart(chartOptions);
@@ -143,13 +155,11 @@
     chartLeft.streamTo(document.getElementById('chart-left'), 100);
     chartRight.streamTo(document.getElementById('chart-right'), 100);
 
-    // Линии для графиков
     const lines = {
       'L_Red': new TimeSeries(), 'L_Yel': new TimeSeries(), 'L_Blu': new TimeSeries(),
       'R_Red': new TimeSeries(), 'R_Yel': new TimeSeries(), 'R_Blu': new TimeSeries()
     };
     
-    // Цвета линий
     const colors = { Red: '#ff3b30', Yel: '#ffcc00', Blu: '#0a84ff' };
 
     chartLeft.addTimeSeries(lines['L_Red'], { strokeStyle: colors.Red, lineWidth: 2 });
@@ -168,24 +178,44 @@
     const buffers = {};
     const sensorsList = Object.keys(CALIBRATION);
 
-    // Функция обновления баланса
     function updateBalance() {
+      // Суммы по ногам
       let leftTotal = calValues['L_Red'] + calValues['L_Yel'] + calValues['L_Blu'];
       let rightTotal = calValues['R_Red'] + calValues['R_Yel'] + calValues['R_Blu'];
       let totalWeight = leftTotal + rightTotal;
 
-      if (totalWeight > 20) { // Игнорируем фоновый шум
-        let leftPct = Math.round((leftTotal / totalWeight) * 100);
-        let rightPct = Math.round((rightTotal / totalWeight) * 100);
-        document.getElementById('left-pct').innerText = leftPct + '%';
-        document.getElementById('right-pct').innerText = rightPct + '%';
+      // ОБЩИЙ БАЛАНС (Лево / Право)
+      if (totalWeight > 20) { 
+        document.getElementById('left-pct').innerText = Math.round((leftTotal / totalWeight) * 100) + '%';
+        document.getElementById('right-pct').innerText = Math.round((rightTotal / totalWeight) * 100) + '%';
       } else {
         document.getElementById('left-pct').innerText = '0%';
         document.getElementById('right-pct').innerText = '0%';
       }
+
+      // ЛОКАЛЬНЫЙ БАЛАНС (Левая нога)
+      if (leftTotal > 10) {
+        document.getElementById('l-heel').innerText = Math.round((calValues['L_Red'] / leftTotal) * 100) + '%';
+        document.getElementById('l-in').innerText = Math.round((calValues['L_Yel'] / leftTotal) * 100) + '%';
+        document.getElementById('l-out').innerText = Math.round((calValues['L_Blu'] / leftTotal) * 100) + '%';
+      } else {
+        document.getElementById('l-heel').innerText = '0%';
+        document.getElementById('l-in').innerText = '0%';
+        document.getElementById('l-out').innerText = '0%';
+      }
+
+      // ЛОКАЛЬНЫЙ БАЛАНС (Правая нога)
+      if (rightTotal > 10) {
+        document.getElementById('r-heel').innerText = Math.round((calValues['R_Red'] / rightTotal) * 100) + '%';
+        document.getElementById('r-in').innerText = Math.round((calValues['R_Yel'] / rightTotal) * 100) + '%';
+        document.getElementById('r-out').innerText = Math.round((calValues['R_Blu'] / rightTotal) * 100) + '%';
+      } else {
+        document.getElementById('r-heel').innerText = '0%';
+        document.getElementById('r-in').innerText = '0%';
+        document.getElementById('r-out').innerText = '0%';
+      }
     }
 
-    // Подключение к датчикам
     sensorsList.forEach(sensor => {
       document.getElementById(`btn-${sensor}`).addEventListener('click', async (e) => {
         try {
@@ -198,7 +228,7 @@
           const characteristic = await service.getCharacteristic(UART_TX);
           await characteristic.startNotifications();
           
-          // Меняем внешний вид кнопки при подключении
+          // Визуальное подключение (оставляем цвет, добавляем зеленое свечение)
           e.target.innerText = "OK";
           e.target.classList.add("connected");
 
@@ -212,20 +242,17 @@
               for (let i = 0; i < dataLines.length - 1; i++) {
                 const parts = dataLines[i].trim().split(',');
                 if (parts.length === 3) {
-                  // Берем сырое значение
                   const rawFsr = parseInt(parts[0]);
-                  
-                  // ПРИМЕНЯЕМ ЭТАЛОННУЮ КАЛИБРОВКУ
+                  // Умножаем на ваш калибровочный множитель
                   const cleanValue = Math.round(rawFsr * CALIBRATION[sensor]);
                   calValues[sensor] = cleanValue;
                   
-                  // Обновляем текст и график
                   document.getElementById(`val-${sensor}`).innerText = cleanValue;
                   lines[sensor].append(new Date().getTime(), cleanValue);
                 }
               }
               buffers[id] = dataLines[dataLines.length - 1];
-              updateBalance(); // Пересчитываем баланс при каждом обновлении
+              updateBalance(); 
             }
           });
         } catch (error) { console.log(error); }
