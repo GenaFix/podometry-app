@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Железобетонная Синхронизация</title>
+  <title>Подометрия PRO - Профессиональный Ракурс</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,7 +27,7 @@
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* Кнопки датчиков, управляемые проекционным движком */
+    /* Синхронизированные кнопки датчиков */
     .sensor-btn { 
       position: absolute; width: 40px; height: 40px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.4); color: white; 
@@ -75,7 +75,6 @@
   <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
     
-    <!-- Кнопки управления -->
     <div id="btn-L_Red" class="sensor-btn disconnected">L_Red</div>
     <div id="btn-L_Yel" class="sensor-btn disconnected">L_Yel</div>
     <div id="btn-L_Blu" class="sensor-btn disconnected">L_Blu</div>
@@ -98,7 +97,7 @@
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // === THREE.JS СТАБИЛЬНАЯ СЦЕНА ===
+    // === THREE.JS СЦЕНА ===
     const container3d = document.getElementById('canvas-3d');
     const workspaceEl = document.getElementById('workspace-container');
     const scene = new THREE.Scene();
@@ -121,7 +120,6 @@
 
     const uiAnchors = [];
 
-    // Создание анатомической стопы с якорями датчиков внутри 3D-модели
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
@@ -152,7 +150,6 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // Функция добавления 3D-якоря для привязки кнопок
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
         anchor.position.set(x, y, 0.4); 
@@ -163,17 +160,17 @@
 
       if (isLeft) {
         attachAnchor('L_Red', 0.0, -0.2); 
-        attachAnchor('L_Yel', 0.6, 3.2);  
-        attachAnchor('L_Blu', -0.5, 2.6); 
+        attachAnchor('L_Yel', 0.6, 3.0);  
+        attachAnchor('L_Blu', -0.5, 2.5); 
       } else {
         attachAnchor('R_Red', 0.0, -0.2); 
-        attachAnchor('R_Yel', -0.6, 3.2); 
-        attachAnchor('R_Blu', 0.5, 2.6);  
+        attachAnchor('R_Yel', -0.6, 3.0); 
+        attachAnchor('R_Blu', 0.5, 2.5);  
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
-      wrapper.scale.set(1.3, 1.3, 1.3); // Крупный масштаб стопы
+      wrapper.scale.set(1.25, 1.25, 1.25);
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -181,19 +178,19 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Раздвигаем стопы в стороны
-    meshLeftFoot.position.set(-1.3, 0, 0.3); 
-    meshRightFoot.position.set(1.3, 0, 0.3);
+    // Надежно раздвигаем стопы в разные стороны
+    meshLeftFoot.position.set(-1.6, 0, 0.2); 
+    meshRightFoot.position.set(1.6, 0, 0.2);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    camera.position.set(0, 5.5, 4.5); 
-    camera.lookAt(0, 0, 0.3); 
+    // Профессиональный ракурс со спины (чуть выше, сзади)
+    camera.position.set(0, 5.0, 5.5); 
+    camera.lookAt(0, 0, -0.2); 
 
-    // Проекционный движок синхронизации кнопок с 3D-моделью в реальном времени
     function updateUIElements() {
       const halfWidth = workspaceEl.clientWidth / 2;
       const halfHeight = workspaceEl.clientHeight / 2;
@@ -217,7 +214,7 @@
     function animate3D() { 
       requestAnimationFrame(animate3D); 
       renderer.render(scene, camera); 
-      updateUIElements(); // Кнопки следуют за стопой при любых поворотах
+      updateUIElements();
     }
     animate3D();
 
