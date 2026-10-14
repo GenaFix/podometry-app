@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Умная Синхронизация 3D и UI</title>
+  <title>Подометрия PRO - Идеальные пропорции</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -34,16 +34,15 @@
     .stats-block { position: absolute; top: 5px; left: 5px; right: 5px; pointer-events: auto; background: rgba(28,28,30, 0.75); padding: 5px; border-radius: 8px; text-align: center; font-size: 9px; color: #aaa; backdrop-filter: blur(4px); line-height: 1.4; border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
     .stats-block span { font-size: 12px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 32px; text-align: left; }
     
-    /* Кнопки датчиков (Жесткие CSS координаты удалены, теперь ими управляет JavaScript 3D-движка) */
+    /* Кнопки датчиков (СДЕЛАЛ МЕНЬШЕ И АККУРАТНЕЕ) */
     .sensor-btn { 
-      pointer-events: auto; position: absolute; width: 42px; height: 42px; border-radius: 50%; 
-      border: 2px solid rgba(255,255,255,0.3); font-size: 9px; font-weight: bold; color: white; 
+      pointer-events: auto; position: absolute; width: 32px; height: 32px; border-radius: 50%; 
+      border: 2px solid rgba(255,255,255,0.3); font-size: 8px; font-weight: bold; color: white; 
       cursor: pointer; display: flex; justify-content: center; align-items: center; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: background-color 0.2s, box-shadow 0.2s; z-index: 20;
-      transform: translate(-50%, -50%); /* Центруем кнопку строго по выданной координате */
+      transform: translate(-50%, -50%); 
     }
     
-    /* Цвета кнопок */
     #btn-L_Red, #btn-R_Red { background: #ff3b30; }
     #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
     #btn-L_Blu, #btn-R_Blu { background: #0a84ff; }
@@ -93,7 +92,6 @@
       </div>
     </div>
 
-    <!-- Кнопки вынесены в общий контейнер для свободного перемещения -->
     <div id="btn-L_Red" class="sensor-btn">L_Red</div>
     <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
     <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
@@ -116,7 +114,7 @@
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // === THREE.JS ФУНДАМЕНТАЛЬНАЯ НАСТРОЙКА ===
+    // === THREE.JS НАСТРОЙКА ===
     const container3d = document.getElementById('canvas-3d');
     const workspaceEl = document.getElementById('workspace-container');
     const scene = new THREE.Scene();
@@ -137,10 +135,9 @@
     dirLight.position.set(0, 10, 5); 
     scene.add(dirLight);
 
-    // Массив для хранения 3D-якорей кнопок
     const uiAnchors = [];
 
-    // ГЕНЕРАЦИЯ ТОЧНОЙ АНАТОМИЧЕСКОЙ СТОПЫ
+    // ГЕНЕРАЦИЯ СТОПЫ
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
@@ -170,28 +167,32 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // === СОЗДАНИЕ 3D ЯКОРЕЙ ДЛЯ КНОПОК ===
+      // === СОЗДАНИЕ 3D ЯКОРЕЙ ===
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
-        anchor.position.set(x, y, 0.45); // Чуть выше поверхности пластика (0.4)
+        anchor.position.set(x, y, 0.45);
         anchor.userData = { btnId: 'btn-' + id };
         footGroup.add(anchor);
         uiAnchors.push(anchor);
       }
 
+      // Откалиброванные координаты для кнопок
       if (isLeft) {
-        attachAnchor('L_Red', 0.05, 0.3);       // Пятка
-        attachAnchor('L_Yel', 0.8, 2.8);        // Внутренняя плюсна
-        attachAnchor('L_Blu', -0.6, 2.4);       // Внешний свод
+        attachAnchor('L_Red', 0.0, 0.4);       // Центр пятки
+        attachAnchor('L_Yel', 0.7, 2.9);       // Внутренняя плюсна
+        attachAnchor('L_Blu', -0.55, 2.5);     // Внешний свод
       } else {
-        attachAnchor('R_Red', -0.05, 0.3);      // Пятка
-        attachAnchor('R_Yel', -0.8, 2.8);       // Внутренняя плюсна
-        attachAnchor('R_Blu', 0.6, 2.4);        // Внешний свод
+        attachAnchor('R_Red', 0.0, 0.4);       
+        attachAnchor('R_Yel', -0.7, 2.9);       
+        attachAnchor('R_Blu', 0.55, 2.5);        
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
       footGroup.position.set(0, 0, 0);     
+      
+      // УВЕЛИЧИЛ МАСШТАБ СТОПЫ НА 40%
+      wrapper.scale.set(1.4, 1.4, 1.4); 
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -199,35 +200,32 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    meshLeftFoot.position.set(-1.6, 0, 1.0); 
-    meshRightFoot.position.set(1.6, 0, 1.0);
+    // Придвинул стопы ближе к центру для лучшего вида
+    meshLeftFoot.position.set(-1.1, 0, 2.0); 
+    meshRightFoot.position.set(1.1, 0, 2.0);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    camera.position.set(0, 7.5, 6.5); 
-    camera.lookAt(0, 0, 1.5); 
+    // КАМЕРА ОПУЩЕНА И НАПРАВЛЕНА СТРОГО В ЦЕНТР СТОПЫ
+    camera.position.set(0, 7.5, 6.0); 
+    camera.lookAt(0, 0, -1.0); 
 
-    // === ДВИЖОК ПРОЕКЦИИ (МАГИЯ ПРИВЯЗКИ 3D К UI) ===
+    // === ДВИЖОК ПРОЕКЦИИ UI ===
     function updateUIElements() {
       const halfWidth = workspaceEl.clientWidth / 2;
       const halfHeight = workspaceEl.clientHeight / 2;
 
       uiAnchors.forEach(anchor => {
-        // Берем абсолютную 3D координату точки в мире
         const vector = new THREE.Vector3();
         anchor.getWorldPosition(vector);
-        
-        // Проецируем через линзу камеры на 2D экран
         vector.project(camera);
 
-        // Переводим в пиксели
         const x = (vector.x * halfWidth) + halfWidth;
         const y = -(vector.y * halfHeight) + halfHeight;
 
-        // Двигаем HTML кнопку
         const btn = document.getElementById(anchor.userData.btnId);
         if (btn) {
           btn.style.left = x + 'px';
@@ -239,7 +237,7 @@
     function animate3D() { 
       requestAnimationFrame(animate3D); 
       renderer.render(scene, camera); 
-      updateUIElements(); // Синхронизируем кнопки каждый кадр
+      updateUIElements();
     }
     animate3D();
 
@@ -280,7 +278,6 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Кинематика вращения. Кнопки будут летать за стопой автоматически!
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
