@@ -1,9 +1,16 @@
+Да, по скриншоту `image_25.png` отлично видно, что они снова смотрят внутрь друг на друга (и желтые датчики арки оказались снаружи, хотя должны быть внутри). Это из-за того, что при инверсии геометрии перепутали левую и правую сторону стопы местами.
+
+Я полностью исправил математику формы: теперь большой палец и арка (`L_Yel` / `R_Yel`) находятся строго со стороны центра (внутри), а мизинец и внешний край (`L_Blu` / `R_Blu`) — снаружи. Стопы развернуты правильно и стоят параллельно.
+
+Скопируйте этот финальный код, вставьте в `index.html` и откройте страницу с версией `genafix.github.io/?v=230`:
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Правильный Разворот Стоп</title>
+  <title>Подометрия PRO - Идеальная Постановка</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -148,22 +155,22 @@
       const extrudeSettings = { depth: 0.35, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      // Зеркально правильная анатомия: внутренний свод (арка) направлен внутрь, внешний — наружу
+      // Правильная анатомия: внутренний изгиб арки смотрит вовнутрь (к центру), внешний край — наружу
       s.moveTo(0, -1.1); 
-      s.bezierCurveTo(sign * 0.45, -1.1, sign * 0.55, -0.2, sign * 0.55, 0.8);  // Пятка
-      s.bezierCurveTo(sign * 0.55, 2.2, sign * 1.3, 3.4, sign * 1.2, 4.5);   // Внешний край
-      s.bezierCurveTo(sign * 0.7, 5.4, sign * -0.7, 5.4, sign * -1.2, 4.5);    // Пальцы
-      s.bezierCurveTo(sign * -1.2, 3.4, sign * -0.55, 2.2, sign * -0.55, 0.8);    // Внутренний свод (арка)
-      s.bezierCurveTo(sign * -0.55, -0.2, sign * -0.45, -1.1, 0, -1.1);             // Возврат
+      s.bezierCurveTo(sign * -0.45, -1.1, sign * -0.55, -0.2, sign * -0.55, 0.8);  // Пятка
+      s.bezierCurveTo(sign * -0.55, 2.2, sign * -1.3, 3.4, sign * -1.2, 4.5);   // Внешний край
+      s.bezierCurveTo(sign * -0.7, 5.4, sign * 0.7, 5.4, sign * 1.2, 4.5);    // Пальцы
+      s.bezierCurveTo(sign * 1.2, 3.4, sign * 0.55, 2.2, sign * 0.55, 0.8);    // Внутренний свод (арка)
+      s.bezierCurveTo(sign * 0.55, -0.2, sign * 0.45, -1.1, 0, -1.1);             // Возврат
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
       const toes = [
-        { x: sign * -0.85, y: 5.0, r: 0.44 }, // Большой палец внутри
-        { x: sign * -0.35, y: 5.3, r: 0.32 }, 
-        { x: sign * 0.1,   y: 5.2, r: 0.26 }, 
-        { x: sign * 0.55,  y: 4.9, r: 0.20 }, 
-        { x: sign * 0.9,   y: 4.4, r: 0.16 }  // Мизинец снаружи
+        { x: sign * 0.85, y: 5.0, r: 0.44 }, // Большой палец внутри
+        { x: sign * 0.35, y: 5.3, r: 0.32 }, 
+        { x: sign * -0.1, y: 5.2, r: 0.26 }, 
+        { x: sign * -0.55,y: 4.9, r: 0.20 }, 
+        { x: sign * -0.9, y: 4.4, r: 0.16 }  // Мизинец снаружи
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -181,12 +188,12 @@
 
       if (isLeft) {
         attachAnchor('L_Red', 0.0, -0.8);  
-        attachAnchor('L_Yel', -0.8, 3.2);  // Желтый на внутренний свод
-        attachAnchor('L_Blu', 0.8, 3.0);   // Синий на внешний край
+        attachAnchor('L_Yel', 0.8, 3.2);   // Желтый на внутренний свод (к центру)
+        attachAnchor('L_Blu', -0.8, 3.0);  // Синий на внешний край
       } else {
         attachAnchor('R_Red', 0.0, -0.8);  
-        attachAnchor('R_Yel', 0.8, 3.2);   // Желтый на внутренний свод
-        attachAnchor('R_Blu', -0.8, 3.0);  // Синий на внешний край
+        attachAnchor('R_Yel', -0.8, 3.2);  // Желтый на внутренний свод (к центру)
+        attachAnchor('R_Blu', 0.8, 3.0);   // Синий на внешний край
       }
 
       const wrapper = new THREE.Group();
@@ -199,7 +206,6 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Правильное положение стоп на экране
     meshLeftFoot.position.set(-1.8, -0.3, 0.2); 
     meshRightFoot.position.set(1.8, -0.3, 0.2);
 
@@ -346,3 +352,5 @@
   </script>
 </body>
 </html>
+
+```
