@@ -1,214 +1,236 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Holyiot Podometry Pro</title>
-  <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Подометрия - Диагностика</title>
+  <!-- Библиотека для графиков -->
+  <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <style>
-    body { margin: 0; background-color: #121212; color: white; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; }
     
-    /* Верхняя панель управления */
-    #top-bar { display: flex; justify-content: center; align-items: center; padding: 10px; background: #222; border-bottom: 2px solid #333; position: relative;}
-    #btn-calibrate { background: #34c759; color: black; border: none; padding: 8px 20px; font-weight: bold; border-radius: 8px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
-    #btn-calibrate:active { transform: scale(0.95); }
-    
-    /* Предупреждение о гироскопах */
-    #swap-warning { display: none; position: absolute; top: 50px; left: 10%; right: 10%; background: #ff3b30; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; z-index: 100; box-shadow: 0 4px 10px rgba(255,59,48,0.4); animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+    /* Панель баланса (вместо старой кнопки ТАРА) */
+    .balance-banner { 
+      background: #1c1c1e; border: 2px solid #333; border-radius: 12px; padding: 15px; 
+      text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .balance-title { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; }
+    .balance-values { font-size: 24px; font-weight: bold; }
+    .bal-left { color: #fff; }
+    .bal-right { color: #fff; }
 
-    /* Топология стоп */
-    #topology-container { display: flex; justify-content: space-around; padding: 15px 10px; background: #1a1a1a; flex-shrink: 0; border-bottom: 2px solid #333; }
-    .foot-map { display: flex; flex-direction: column; align-items: center; width: 45%; background: #2a2a2a; border-radius: 30px; padding: 15px 10px; box-sizing: border-box; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-    .foot-label { font-size: 12px; color: #aaa; margin-bottom: 15px; font-weight: bold; text-transform: uppercase; }
+    /* Блоки кнопок датчиков */
+    .panels-container { display: flex; gap: 10px; margin-bottom: 20px; }
+    .sensor-panel { 
+      background: #1c1c1e; border-radius: 12px; padding: 15px; flex: 1; 
+      display: flex; flex-direction: column; align-items: center; 
+    }
+    .sensor-panel h3 { margin: 0 0 15px 0; font-size: 14px; color: #aaa; text-transform: uppercase; }
+    .buttons-grid { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; justify-items: center; 
+    }
     
-    .toes-row { display: flex; justify-content: space-between; width: 90%; margin-bottom: 30px; }
-    .heel-row { display: flex; justify-content: center; width: 100%; }
+    /* Круглые кнопки */
+    .btn-circle { 
+      width: 55px; height: 55px; border-radius: 50%; border: none; 
+      color: white; font-weight: bold; font-size: 12px; cursor: pointer; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;
+    }
+    .btn-circle:active { transform: scale(0.9); }
+    .bg-blue { background-color: #0a84ff; }
+    .bg-yellow { background-color: #ffcc00; color: #000; }
+    .bg-red { background-color: #ff3b30; }
+    .connected { background-color: #444 !important; color: #888 !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
     
-    .sensor-node { width: 45px; height: 45px; border-radius: 22px; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 10px; font-weight: bold; color: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
-    .sensor-node.connected { opacity: 0.3; box-shadow: none; color: #fff; border: 2px solid #fff;}
-    
-    .node-red { background: #ff3b30; color: white; }
-    .node-yellow { background: #ffcc00; }
-    .node-blue { background: #007aff; color: white; }
-
     /* Графики */
-    .charts-wrapper { display: flex; flex-direction: column; flex: 1; }
-    .chart-box { flex: 1; background: #1a1a1a; padding: 5px; display: flex; flex-direction: column; border-bottom: 1px solid #333; position: relative;}
-    .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
-    canvas { display: block; width: 100%; height: 100%; }
-    
-    .val-red { color: #ff3b30; font-weight: bold; }
-    .val-yellow { color: #ffcc00; font-weight: bold; }
-    .val-blue { color: #007aff; font-weight: bold; }
+    .chart-container { margin-bottom: 15px; }
+    .chart-header { 
+      display: flex; justify-content: space-between; align-items: center; 
+      font-size: 12px; color: #888; margin-bottom: 5px; padding: 0 5px;
+    }
+    .chart-values span { font-weight: bold; font-size: 14px; }
+    canvas { width: 100%; height: 150px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
   </style>
 </head>
 <body>
 
-  <div id="top-bar">
-    <button id="btn-calibrate">СТАРТ КАЛИБРОВКИ (ТАРА)</button>
+  <!-- Главный экран баланса -->
+  <div class="balance-banner">
+    <div class="balance-title">ОБЩИЙ БАЛАНС ВЕСА</div>
+    <div class="balance-values">
+      ЛЕВ: <span id="left-pct" class="bal-left">0%</span> &nbsp;|&nbsp; ПРАВ: <span id="right-pct" class="bal-right">0%</span>
+    </div>
   </div>
-  
-  <div id="swap-warning">⚠️ ОШИБКА: ДАТЧИКИ ПЕРЕПУТАНЫ! (Проверьте левую/правую ногу)</div>
 
-  <div id="topology-container">
-    <!-- Левая Стопа -->
-    <div class="foot-map">
-      <div class="foot-label">Левая (Left)</div>
-      <div class="toes-row">
-        <button id="btn-l-blue" class="sensor-node node-blue">L_Blu</button>
-        <button id="btn-l-yellow" class="sensor-node node-yellow">L_Yel</button>
-      </div>
-      <div class="heel-row">
-        <button id="btn-l-red" class="sensor-node node-red">L_Red</button>
+  <!-- Панели подключения датчиков -->
+  <div class="panels-container">
+    <div class="sensor-panel">
+      <h3>Левая (Left)</h3>
+      <div class="buttons-grid">
+        <button id="btn-L_Blu" class="btn-circle bg-blue">L_Blu</button>
+        <button id="btn-L_Yel" class="btn-circle bg-yellow">L_Yel</button>
+        <button id="btn-L_Red" class="btn-circle bg-red" style="grid-column: span 2;">L_Red</button>
       </div>
     </div>
-    <!-- Правая Стопа -->
-    <div class="foot-map">
-      <div class="foot-label">Правая (Right)</div>
-      <div class="toes-row">
-        <button id="btn-r-yellow" class="sensor-node node-yellow">R_Yel</button>
-        <button id="btn-r-blue" class="sensor-node node-blue">R_Blu</button>
-      </div>
-      <div class="heel-row">
-        <button id="btn-r-red" class="sensor-node node-red">R_Red</button>
+    
+    <div class="sensor-panel">
+      <h3>Правая (Right)</h3>
+      <div class="buttons-grid">
+        <button id="btn-R_Yel" class="btn-circle bg-yellow">R_Yel</button>
+        <button id="btn-R_Blu" class="btn-circle bg-blue">R_Blu</button>
+        <button id="btn-R_Red" class="btn-circle bg-red" style="grid-column: span 2;">R_Red</button>
       </div>
     </div>
   </div>
 
-  <div class="charts-wrapper">
-    <div class="chart-box">
-      <div class="chart-header">
-        <span>Левая (% от веса)</span>
-        <div><span class="val-red" id="val-l-red">0</span> | <span class="val-yellow" id="val-l-yellow">0</span> | <span class="val-blue" id="val-l-blue">0</span></div>
+  <!-- График Левой ноги -->
+  <div class="chart-container">
+    <div class="chart-header">
+      <span>ЛЕВАЯ (ОТКАЛИБРОВАННО)</span>
+      <div class="chart-values">
+        <span id="val-L_Red" style="color:#ff3b30">0</span> | 
+        <span id="val-L_Yel" style="color:#ffcc00">0</span> | 
+        <span id="val-L_Blu" style="color:#0a84ff">0</span>
       </div>
-      <canvas id="chart-left"></canvas>
     </div>
-    <div class="chart-box" style="border-bottom: none;">
-      <div class="chart-header">
-        <span>Правая (% от веса)</span>
-        <div><span class="val-red" id="val-r-red">0</span> | <span class="val-yellow" id="val-r-yellow">0</span> | <span class="val-blue" id="val-r-blue">0</span></div>
+    <canvas id="chart-left"></canvas>
+  </div>
+
+  <!-- График Правой ноги -->
+  <div class="chart-container">
+    <div class="chart-header">
+      <span>ПРАВАЯ (ОТКАЛИБРОВАННО)</span>
+      <div class="chart-values">
+        <span id="val-R_Red" style="color:#ff3b30">0</span> | 
+        <span id="val-R_Yel" style="color:#ffcc00">0</span> | 
+        <span id="val-R_Blu" style="color:#0a84ff">0</span>
       </div>
-      <canvas id="chart-right"></canvas>
     </div>
+    <canvas id="chart-right"></canvas>
   </div>
 
   <script>
-    // --- Глобальные переменные для калибровки и гироскопа ---
-    const sensorState = {
-      'L_Red': {fsr: 0, pitch: 0}, 'L_Yel': {fsr: 0, pitch: 0}, 'L_Blu': {fsr: 0, pitch: 0},
-      'R_Red': {fsr: 0, pitch: 0}, 'R_Yel': {fsr: 0, pitch: 0}, 'R_Blu': {fsr: 0, pitch: 0}
+    // ==========================================
+    // 1. ЭТАЛОННЫЕ КОЭФФИЦИЕНТЫ (Ваши замеры 5 кг)
+    // ==========================================
+    const CALIBRATION = {
+      'L_Red': 1.408,
+      'L_Yel': 6.667,
+      'L_Blu': 0.840,
+      'R_Red': 3.125,
+      'R_Yel': 0.556,
+      'R_Blu': 1.786
     };
-    const calibBase = { 'L_Red': 1, 'L_Yel': 1, 'L_Blu': 1, 'R_Red': 1, 'R_Yel': 1, 'R_Blu': 1 };
-    let isCalibrated = false;
 
-    // --- Логика Калибровки ---
-    document.getElementById('btn-calibrate').addEventListener('click', () => {
-      for (const [key, data] of Object.entries(sensorState)) {
-        calibBase[key] = data.fsr > 5 ? data.fsr : 1; // Защита от деления на ноль
-      }
-      isCalibrated = true;
-      document.getElementById('btn-calibrate').style.background = '#ffcc00';
-      document.getElementById('btn-calibrate').innerText = 'ОТКАЛИБРОВАНО (100%)';
-    });
+    // Хранилище чистых (откалиброванных) значений
+    const calValues = {
+      'L_Red': 0, 'L_Yel': 0, 'L_Blu': 0,
+      'R_Red': 0, 'R_Yel': 0, 'R_Blu': 0
+    };
 
-    // --- Система "Анти-Дурак" (Анализ углов) ---
-    setInterval(() => {
-      // Сравниваем углы между пяткой и первой плюсной на каждой ноге
-      let leftDiff = Math.abs(sensorState['L_Red'].pitch - sensorState['L_Yel'].pitch);
-      let rightDiff = Math.abs(sensorState['R_Red'].pitch - sensorState['R_Yel'].pitch);
-      
-      // Если расхождение больше 30 градусов (стопа физически не может так изогнуться)
-      let lActive = sensorState['L_Red'].pitch !== 0 && sensorState['L_Yel'].pitch !== 0;
-      let rActive = sensorState['R_Red'].pitch !== 0 && sensorState['R_Yel'].pitch !== 0;
+    // ==========================================
+    // 2. НАСТРОЙКА ГРАФИКОВ (SmoothieChart)
+    // ==========================================
+    const chartOptions = {
+      millisPerPixel: 20, responsive: true,
+      grid: { fillStyle: '#1c1c1e', strokeStyle: '#333', verticalSections: 4 },
+      labels: { fillStyle: '#888', precision: 0 },
+      minValue: 0
+    };
+    
+    const chartLeft = new SmoothieChart(chartOptions);
+    const chartRight = new SmoothieChart(chartOptions);
+    chartLeft.streamTo(document.getElementById('chart-left'), 100);
+    chartRight.streamTo(document.getElementById('chart-right'), 100);
 
-      if ((leftDiff > 30 && lActive) || (rightDiff > 30 && rActive)) {
-        document.getElementById('swap-warning').style.display = 'block';
+    // Линии для графиков
+    const lines = {
+      'L_Red': new TimeSeries(), 'L_Yel': new TimeSeries(), 'L_Blu': new TimeSeries(),
+      'R_Red': new TimeSeries(), 'R_Yel': new TimeSeries(), 'R_Blu': new TimeSeries()
+    };
+    
+    // Цвета линий
+    const colors = { Red: '#ff3b30', Yel: '#ffcc00', Blu: '#0a84ff' };
+
+    chartLeft.addTimeSeries(lines['L_Red'], { strokeStyle: colors.Red, lineWidth: 2 });
+    chartLeft.addTimeSeries(lines['L_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 });
+    chartLeft.addTimeSeries(lines['L_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
+    
+    chartRight.addTimeSeries(lines['R_Red'], { strokeStyle: colors.Red, lineWidth: 2 });
+    chartRight.addTimeSeries(lines['R_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 });
+    chartRight.addTimeSeries(lines['R_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
+
+    // ==========================================
+    // 3. BLUETOOTH И ОБРАБОТКА ДАННЫХ
+    // ==========================================
+    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+    const buffers = {};
+    const sensorsList = Object.keys(CALIBRATION);
+
+    // Функция обновления баланса
+    function updateBalance() {
+      let leftTotal = calValues['L_Red'] + calValues['L_Yel'] + calValues['L_Blu'];
+      let rightTotal = calValues['R_Red'] + calValues['R_Yel'] + calValues['R_Blu'];
+      let totalWeight = leftTotal + rightTotal;
+
+      if (totalWeight > 20) { // Игнорируем фоновый шум
+        let leftPct = Math.round((leftTotal / totalWeight) * 100);
+        let rightPct = Math.round((rightTotal / totalWeight) * 100);
+        document.getElementById('left-pct').innerText = leftPct + '%';
+        document.getElementById('right-pct').innerText = rightPct + '%';
       } else {
-        document.getElementById('swap-warning').style.display = 'none';
+        document.getElementById('left-pct').innerText = '0%';
+        document.getElementById('right-pct').innerText = '0%';
       }
-    }, 1000); // Проверка каждую секунду
-
-    // --- Настройка графиков ---
-    function createChart(canvasId) {
-      const canvas = document.getElementById(canvasId);
-      const chart = new SmoothieChart({
-        millisPerPixel: 15, 
-        grid: { fillStyle: '#1a1a1a', strokeStyle: '#333', lineWidth: 1, borderVisible: false },
-        labels: { fillStyle: '#ffffff', fontSize: 10 },
-        maxValueScale: 1.2, minValue: 0
-      });
-      const lineRed = new TimeSeries(); const lineYellow = new TimeSeries(); const lineBlue = new TimeSeries();
-      chart.addTimeSeries(lineRed, { strokeStyle: '#ff3b30', lineWidth: 3 });
-      chart.addTimeSeries(lineYellow, { strokeStyle: '#ffcc00', lineWidth: 3 });
-      chart.addTimeSeries(lineBlue, { strokeStyle: '#007aff', lineWidth: 3 });
-      chart.streamTo(canvas, 0);
-      return { lineRed, lineYellow, lineBlue, canvas };
     }
 
-    const chartLeft = createChart('chart-left');
-    const chartRight = createChart('chart-right');
-
-    function resize() {
-      chartLeft.canvas.width = chartLeft.canvas.parentElement.clientWidth; chartLeft.canvas.height = chartLeft.canvas.parentElement.clientHeight - 20;
-      chartRight.canvas.width = chartRight.canvas.parentElement.clientWidth; chartRight.canvas.height = chartRight.canvas.parentElement.clientHeight - 20;
-    }
-    window.addEventListener('resize', resize); setTimeout(resize, 100);
-
-    // --- Bluetooth Логика ---
-    const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"; const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-    const buffers = {}; 
-
-    function setupSensor(btnId, targetName, timeSeries, labelId) {
-      document.getElementById(btnId).addEventListener('click', async () => {
+    // Подключение к датчикам
+    sensorsList.forEach(sensor => {
+      document.getElementById(`btn-${sensor}`).addEventListener('click', async (e) => {
         try {
-          const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: targetName }], optionalServices: [UART_SERVICE] });
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: sensor }],
+            optionalServices: [UART_SERVICE]
+          });
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService(UART_SERVICE);
           const characteristic = await service.getCharacteristic(UART_TX);
           await characteristic.startNotifications();
           
+          // Меняем внешний вид кнопки при подключении
+          e.target.innerText = "OK";
+          e.target.classList.add("connected");
+
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const id = device.id;
             if (!buffers[id]) buffers[id] = "";
             buffers[id] += new TextDecoder().decode(event.target.value);
-            const lines = buffers[id].split('\n');
-            if (lines.length > 1) {
-              for (let i = 0; i < lines.length - 1; i++) {
-                const parts = lines[i].trim().split(',');
+            const dataLines = buffers[id].split('\n');
+            
+            if (dataLines.length > 1) {
+              for (let i = 0; i < dataLines.length - 1; i++) {
+                const parts = dataLines[i].trim().split(',');
                 if (parts.length === 3) {
-                  // Читаем все данные: Давление и Углы
+                  // Берем сырое значение
                   const rawFsr = parseInt(parts[0]);
-                  const pitch = parseInt(parts[1]);
                   
-                  // Сохраняем в глобальный массив для проверки гироскопа
-                  sensorState[targetName].fsr = rawFsr;
-                  sensorState[targetName].pitch = pitch;
-
-                  // Математика калибровки
-                  let displayValue = rawFsr;
-                  if (isCalibrated) {
-                    displayValue = (rawFsr / calibBase[targetName]) * 100; 
-                  }
+                  // ПРИМЕНЯЕМ ЭТАЛОННУЮ КАЛИБРОВКУ
+                  const cleanValue = Math.round(rawFsr * CALIBRATION[sensor]);
+                  calValues[sensor] = cleanValue;
                   
-                  timeSeries.append(new Date().getTime(), displayValue);
-                  document.getElementById(labelId).innerText = Math.round(displayValue);
+                  // Обновляем текст и график
+                  document.getElementById(`val-${sensor}`).innerText = cleanValue;
+                  lines[sensor].append(new Date().getTime(), cleanValue);
                 }
               }
-              buffers[id] = lines[lines.length - 1];
+              buffers[id] = dataLines[dataLines.length - 1];
+              updateBalance(); // Пересчитываем баланс при каждом обновлении
             }
           });
-          const btn = document.getElementById(btnId); btn.innerText = "OK"; btn.classList.add("connected");
         } catch (error) { console.log(error); }
       });
-    }
-
-    setupSensor('btn-l-red', 'L_Red', chartLeft.lineRed, 'val-l-red');
-    setupSensor('btn-l-yellow', 'L_Yel', chartLeft.lineYellow, 'val-l-yellow');
-    setupSensor('btn-l-blue', 'L_Blu', chartLeft.lineBlue, 'val-l-blue');
-    setupSensor('btn-r-red', 'R_Red', chartRight.lineRed, 'val-r-red');
-    setupSensor('btn-r-yellow', 'R_Yel', chartRight.lineYellow, 'val-r-yellow');
-    setupSensor('btn-r-blue', 'R_Blu', chartRight.lineBlue, 'val-r-blue');
+    });
   </script>
 </body>
 </html>
