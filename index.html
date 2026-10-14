@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Анатомически Правильная Стопа</title>
+  <title>Подометрия PRO - Идеальная Анатомия Стопы</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -128,23 +128,23 @@
       const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      // Анатомически правильная форма: узкая пятка снизу, широкая плюсна вверху, ровные края
+      // Истинная анатомическая форма: узкая пятка, расширение к переднему отделу и пальцам
       s.moveTo(0, -1.0); 
-      s.bezierCurveTo(sign * -0.5, -1.0, sign * -0.6, -0.2, sign * -0.6, 0.8);  // Узкая пятка
-      s.bezierCurveTo(sign * -0.6, 2.0, sign * -0.9, 3.2, sign * -0.8, 4.2);   // Внешний свод
-      s.bezierCurveTo(sign * -0.5, 4.8, sign * 0.5, 4.8, sign * 0.8, 4.2);    // Широкая линия под пальцами
-      s.bezierCurveTo(sign * 0.9, 3.2, sign * 0.6, 2.0, sign * 0.6, 0.8);    // Внутренний свод (арка)
-      s.bezierCurveTo(sign * 0.6, -0.2, sign * 0.5, -1.0, 0, -1.0);             // Возврат к пятке
+      s.bezierCurveTo(sign * -0.45, -1.0, sign * -0.5, -0.2, sign * -0.5, 0.8);  // Узкая пятка
+      s.bezierCurveTo(sign * -0.5, 2.0, sign * -1.0, 3.2, sign * -0.9, 4.2);   // Широкий передний отдел
+      s.bezierCurveTo(sign * -0.6, 5.0, sign * 0.6, 5.0, sign * 0.9, 4.2);    // Широкая линия под пальцами
+      s.bezierCurveTo(sign * 1.0, 3.2, sign * 0.5, 2.0, sign * 0.5, 0.8);    // Ровный внутренний свод
+      s.bezierCurveTo(sign * 0.5, -0.2, sign * 0.45, -1.0, 0, -1.0);             // Возврат к пятке
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // Набор пальцев (широкий передний отдел)
+      // Правильный веер пальцев
       const toes = [
-        { x: sign * 0.6,  y: 4.6, r: 0.35 }, // Большой палец
-        { x: sign * 0.2,  y: 4.8, r: 0.25 }, 
-        { x: sign * -0.15,y: 4.7, r: 0.20 }, 
-        { x: sign * -0.45,y: 4.4, r: 0.16 }, 
-        { x: sign * -0.7, y: 4.0, r: 0.13 }  // Мизинец
+        { x: sign * 0.7,  y: 4.7, r: 0.38 }, // Большой палец
+        { x: sign * 0.25, y: 5.0, r: 0.28 }, 
+        { x: sign * -0.15,y: 4.9, r: 0.22 }, 
+        { x: sign * -0.5, y: 4.6, r: 0.18 }, 
+        { x: sign * -0.8, y: 4.2, r: 0.14 }  // Мизинец
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -160,20 +160,20 @@
         uiAnchors.push(anchor);
       }
 
-      // Точные анатомические точки для датчиков
+      // Корректные точки датчиков под широкую переднюю часть
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, -0.6);  // Пятка
-        attachAnchor('L_Yel', 0.55, 3.0);  // Внутренняя плюсна
-        attachAnchor('L_Blu', -0.55, 2.8); // Внешний свод
+        attachAnchor('L_Red', 0.0, -0.7);  // Пятка
+        attachAnchor('L_Yel', 0.6, 3.0);   // Внутренняя плюсна
+        attachAnchor('L_Blu', -0.6, 3.0);  // Внешний свод
       } else {
-        attachAnchor('R_Red', 0.0, -0.6);  
-        attachAnchor('R_Yel', -0.55, 3.0); 
-        attachAnchor('R_Blu', 0.55, 2.8);  
+        attachAnchor('R_Red', 0.0, -0.7);  
+        attachAnchor('R_Yel', -0.6, 3.0);  
+        attachAnchor('R_Blu', 0.6, 3.0);   
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
-      wrapper.scale.set(1.25, 1.25, 1.25);
+      wrapper.scale.set(1.2, 1.2, 1.2);
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -181,7 +181,7 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Ровно и параллельно раздвинутые стопы
+    // Ровные параллельные стопы
     meshLeftFoot.position.set(-1.6, 0, 0.2); 
     meshRightFoot.position.set(1.6, 0, 0.2);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
@@ -190,7 +190,6 @@
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // Удобный ракурс со спины
     camera.position.set(0, 5.0, 5.5); 
     camera.lookAt(0, 0, -0.2); 
 
