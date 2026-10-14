@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Интеллектуальный UI</title>
+  <title>Подометрия PRO - Широкая Стопа</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -23,20 +23,24 @@
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* УМЕНЬШЕННАЯ ВЫСОТА 3D ОКНА ДЛЯ ВМЕСТИМОСТИ ГРАФИКОВ */
-    .workspace { position: relative; width: 100%; height: 250px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
+    /* КОМПАКТНАЯ ВЫСОТА 3D ОКНА ДЛЯ ВМЕСТИМОСТИ ГРАФИКОВ БЕЗ ПРОКРУТКИ */
+    .workspace { position: relative; width: 100%; height: 220px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* Кнопки датчиков (Увеличены для текста процентов) */
+    /* Кнопки датчиков (Увеличены для вывода двойного текста) */
     .sensor-btn { 
-      pointer-events: auto; position: absolute; width: 42px; height: 42px; border-radius: 50%; 
-      border: 2px solid rgba(255,255,255,0.3); font-size: 11px; font-weight: bold; color: white; 
-      cursor: pointer; display: flex; justify-content: center; align-items: center; 
+      pointer-events: auto; position: absolute; width: 44px; height: 44px; border-radius: 50%; 
+      border: 2px solid rgba(255,255,255,0.3); color: white; 
+      cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: background-color 0.2s, box-shadow 0.2s; z-index: 20;
       transform: translate(-50%, -50%); 
-      font-family: monospace;
+      font-family: monospace; line-height: 1.1;
     }
     
+    .sensor-btn .val { font-size: 12px; font-weight: bold; }
+    .sensor-btn .pct { font-size: 9px; opacity: 0.8; }
+    .sensor-btn.disconnected { font-size: 10px; font-weight: bold; }
+
     #btn-L_Red, #btn-R_Red { background: #ff3b30; }
     #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
     #btn-L_Blu, #btn-R_Blu { background: #0a84ff; }
@@ -70,13 +74,12 @@
   <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
     
-    <!-- Текстовые блоки удалены. Кнопки служат дисплеями -->
-    <div id="btn-L_Red" class="sensor-btn">L_Red</div>
-    <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
-    <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
-    <div id="btn-R_Red" class="sensor-btn">R_Red</div>
-    <div id="btn-R_Yel" class="sensor-btn">R_Yel</div>
-    <div id="btn-R_Blu" class="sensor-btn">R_Blu</div>
+    <div id="btn-L_Red" class="sensor-btn disconnected">L_Red</div>
+    <div id="btn-L_Yel" class="sensor-btn disconnected">L_Yel</div>
+    <div id="btn-L_Blu" class="sensor-btn disconnected">L_Blu</div>
+    <div id="btn-R_Red" class="sensor-btn disconnected">R_Red</div>
+    <div id="btn-R_Yel" class="sensor-btn disconnected">R_Yel</div>
+    <div id="btn-R_Blu" class="sensor-btn disconnected">R_Blu</div>
   </div>
 
   <div class="chart-container">
@@ -116,30 +119,35 @@
 
     const uiAnchors = [];
 
-    // ГЕНЕРАЦИЯ ИДЕАЛЬНОЙ СТОПЫ
+    // НОВАЯ ГЕНЕРАЦИЯ СТОПЫ (ШИРОКАЯ И РЕАЛИСТИЧНАЯ)
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
       
-      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 50 });
+      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8, shininess: 50 });
       const extrudeSettings = { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
       s.moveTo(0, -0.6); 
-      s.bezierCurveTo(sign * -0.5, -0.6, sign * -0.6, 0.2, sign * -0.6, 1.2); 
-      s.bezierCurveTo(sign * -0.6, 2.5, sign * -0.7, 3.5, sign * -0.6, 4.2);  
-      s.bezierCurveTo(sign * -0.3, 4.8, sign * 0.7, 4.8, sign * 0.9, 3.8);  
-      s.bezierCurveTo(sign * 1.0, 2.8, sign * 0.4, 1.8, sign * 0.4, 0.8);    
-      s.bezierCurveTo(sign * 0.4, -0.2, sign * 0.4, -0.6, 0, -0.6);             
+      // Расширенный внешний край
+      s.bezierCurveTo(sign * -0.7, -0.6, sign * -0.8, 0.2, sign * -0.8, 1.2); 
+      s.bezierCurveTo(sign * -0.9, 2.5, sign * -1.0, 3.5, sign * -0.9, 4.2);  
+      // Широкая линия пальцев
+      s.bezierCurveTo(sign * -0.5, 5.0, sign * 1.0, 5.0, sign * 1.2, 3.8);  
+      // Внутренняя плюсна и глубокий свод
+      s.bezierCurveTo(sign * 1.3, 2.8, sign * 0.6, 1.8, sign * 0.5, 0.8);    
+      // Широкая внутренняя пятка
+      s.bezierCurveTo(sign * 0.5, -0.2, sign * 0.5, -0.6, 0, -0.6);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
+      // Расставленные пальцы
       const toes = [
-        { x: sign * 0.6,  y: 4.8, r: 0.35 }, 
-        { x: sign * 0.15, y: 5.0, r: 0.25 }, 
-        { x: sign * -0.2, y: 4.8, r: 0.20 }, 
-        { x: sign * -0.45,y: 4.4, r: 0.16 }, 
-        { x: sign * -0.65,y: 3.9, r: 0.13 }  
+        { x: sign * 0.8,  y: 5.0, r: 0.40 }, // Большой
+        { x: sign * 0.2,  y: 5.2, r: 0.30 }, // Второй
+        { x: sign * -0.25,y: 5.0, r: 0.25 }, // Третий
+        { x: sign * -0.6, y: 4.6, r: 0.20 }, // Четвертый
+        { x: sign * -0.9, y: 4.1, r: 0.15 }  // Мизинец
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -147,7 +155,7 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // === 3D ЯКОРЯ ===
+      // === 3D ЯКОРЯ ДЛЯ ШИРОКОЙ СТОПЫ ===
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
         anchor.position.set(x, y, 0.45); 
@@ -157,20 +165,20 @@
       }
 
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, 0.0);        
-        attachAnchor('L_Yel', 0.65, 3.2);       
-        attachAnchor('L_Blu', -0.5, 2.8);       
+        attachAnchor('L_Red', 0.0, 0.0);        // Пятка
+        attachAnchor('L_Yel', 0.85, 3.2);       // Широкая внутренняя плюсна
+        attachAnchor('L_Blu', -0.7, 2.8);       // Широкий внешний свод
       } else {
         attachAnchor('R_Red', 0.0, 0.0);       
-        attachAnchor('R_Yel', -0.65, 3.2);       
-        attachAnchor('R_Blu', 0.5, 2.8);        
+        attachAnchor('R_Yel', -0.85, 3.2);       
+        attachAnchor('R_Blu', 0.7, 2.8);        
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
       footGroup.position.set(0, 0, 0);     
       
-      wrapper.scale.set(1.1, 1.1, 1.1); 
+      wrapper.scale.set(0.9, 0.9, 0.9); // Оптимальный масштаб
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -178,16 +186,17 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    meshLeftFoot.position.set(-1.6, 0, 1.0); 
-    meshRightFoot.position.set(1.6, 0, 1.0);
+    // РАЗДВИНУЛ СТОПЫ СИЛЬНЕЕ ДРУГ ОТ ДРУГА
+    meshLeftFoot.position.set(-2.0, 0, 1.0); 
+    meshRightFoot.position.set(2.0, 0, 1.0);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // Оптимизированная камера для окна высотой 250px
-    camera.position.set(0, 10.0, 5.0); 
+    // ОПТИМИЗИРОВАННАЯ КАМЕРА (Для высоты окна 220px)
+    camera.position.set(0, 10.0, 6.0); 
     camera.lookAt(0, 0, 1.0); 
 
     // === ДВИЖОК ПРОЕКЦИИ UI ===
@@ -227,11 +236,17 @@
     chartLeft.addTimeSeries(lines['L_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
     chartRight.addTimeSeries(lines['R_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
 
-    // Вспомогательная функция для вывода процентов в кнопки
+    // Функция умного обновления кнопок
     function updateBtnDisplay(id, value, total) {
       const btn = document.getElementById(id);
       if (btn && btn.classList.contains('connected')) {
-        btn.innerText = (total > 10) ? Math.round((value / total) * 100) + '%' : '0%';
+        if (value > 0) {
+            let pct = (total > 0) ? Math.round((value / total) * 100) : 0;
+            // Показываем АБСОЛЮТНОЕ значение крупно, а процент - мелко
+            btn.innerHTML = `<span class="val">${value}</span><span class="pct">${pct}%</span>`;
+        } else {
+            btn.innerHTML = `<span class="val">0</span>`;
+        }
       }
     }
 
@@ -246,7 +261,7 @@
         document.getElementById('right-pct').innerText = Math.round((rTot / tTot) * 100) + '%';
       } else { document.getElementById('left-pct').innerText = '0%'; document.getElementById('right-pct').innerText = '0%'; }
 
-      // Вывод процентов прямо в кнопки (если они подключены)
+      // Умное обновление кнопок
       updateBtnDisplay('btn-L_Red', state.calValues['L_Red'], lTot);
       updateBtnDisplay('btn-L_Yel', state.calValues['L_Yel'], lTot);
       updateBtnDisplay('btn-L_Blu', state.calValues['L_Blu'], lTot);
@@ -283,7 +298,9 @@
           const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: sensor }], optionalServices: [UART_SERVICE] });
           const server = await device.gatt.connect(); const service = await server.getPrimaryService(UART_SERVICE); const characteristic = await service.getCharacteristic(UART_TX);
           await characteristic.startNotifications();
-          e.target.innerText = "OK"; e.target.classList.add("connected");
+          e.target.innerText = "OK"; 
+          e.target.classList.remove("disconnected");
+          e.target.classList.add("connected");
 
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
             if(isPlaying) return; 
