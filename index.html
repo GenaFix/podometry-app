@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Идеальная Анатомия</title>
+  <title>Подометрия PRO - Интеллектуальный UI</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -23,24 +23,18 @@
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* ИНТЕРАКТИВНЫЙ БЛОК */
-    .workspace { position: relative; width: 100%; height: 320px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
+    /* УМЕНЬШЕННАЯ ВЫСОТА 3D ОКНА ДЛЯ ВМЕСТИМОСТИ ГРАФИКОВ */
+    .workspace { position: relative; width: 100%; height: 250px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    .overlay-panel { position: absolute; top: 0; width: 50%; height: 100%; pointer-events: none; }
-    .panel-left { left: 0; border-right: 1px dashed rgba(255,255,255,0.15); }
-    .panel-right { right: 0; }
-    
-    .stats-block { position: absolute; top: 5px; left: 5px; right: 5px; pointer-events: auto; background: rgba(28,28,30, 0.75); padding: 5px; border-radius: 8px; text-align: center; font-size: 9px; color: #aaa; backdrop-filter: blur(4px); line-height: 1.4; border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
-    .stats-block span { font-size: 12px; font-weight: bold; font-family: monospace; color: #fff; display: inline-block; width: 32px; text-align: left; }
-    
-    /* Кнопки датчиков (Управляются движком 3D) */
+    /* Кнопки датчиков (Увеличены для текста процентов) */
     .sensor-btn { 
-      pointer-events: auto; position: absolute; width: 34px; height: 34px; border-radius: 50%; 
-      border: 2px solid rgba(255,255,255,0.3); font-size: 8px; font-weight: bold; color: white; 
+      pointer-events: auto; position: absolute; width: 42px; height: 42px; border-radius: 50%; 
+      border: 2px solid rgba(255,255,255,0.3); font-size: 11px; font-weight: bold; color: white; 
       cursor: pointer; display: flex; justify-content: center; align-items: center; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); transition: background-color 0.2s, box-shadow 0.2s; z-index: 20;
-      transform: translate(-50%, -50%); /* Точная центровка по X и Y от Three.js */
+      transform: translate(-50%, -50%); 
+      font-family: monospace;
     }
     
     #btn-L_Red, #btn-R_Red { background: #ff3b30; }
@@ -53,7 +47,7 @@
     .chart-container { margin-bottom: 10px; }
     .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
-    canvas.chart-canvas { width: 100%; height: 100px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
+    canvas.chart-canvas { width: 100%; height: 90px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
   </style>
 </head>
 <body>
@@ -76,23 +70,7 @@
   <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
     
-    <div class="overlay-panel panel-left">
-      <div class="stats-block">
-        ЛЕВАЯ СТОПА<br>
-        <span id="l-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
-        <span id="l-in" style="color:#ffcc00">0%</span> (ВНУТР) | <span id="l-out" style="color:#0a84ff">0%</span> (ВНЕШ)
-      </div>
-    </div>
-    
-    <div class="overlay-panel panel-right">
-      <div class="stats-block">
-        ПРАВАЯ СТОПА<br>
-        <span id="r-heel" style="color:#ff3b30">0%</span> (ПЯТКА)<br>
-        <span id="r-in" style="color:#ffcc00">0%</span> (ВНУТР) | <span id="r-out" style="color:#0a84ff">0%</span> (ВНЕШ)
-      </div>
-    </div>
-
-    <!-- Кнопки-якоря -->
+    <!-- Текстовые блоки удалены. Кнопки служат дисплеями -->
     <div id="btn-L_Red" class="sensor-btn">L_Red</div>
     <div id="btn-L_Yel" class="sensor-btn">L_Yel</div>
     <div id="btn-L_Blu" class="sensor-btn">L_Blu</div>
@@ -138,7 +116,7 @@
 
     const uiAnchors = [];
 
-    // ГЕНЕРАЦИЯ ИДЕАЛЬНОЙ СТОПЫ (Круглая пятка)
+    // ГЕНЕРАЦИЯ ИДЕАЛЬНОЙ СТОПЫ
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
@@ -147,16 +125,11 @@
       const extrudeSettings = { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      // Начинаем с нижнего центра пятки
       s.moveTo(0, -0.6); 
-      // Рисуем круглую внешнюю часть пятки и ведем к мизинцу
       s.bezierCurveTo(sign * -0.5, -0.6, sign * -0.6, 0.2, sign * -0.6, 1.2); 
       s.bezierCurveTo(sign * -0.6, 2.5, sign * -0.7, 3.5, sign * -0.6, 4.2);  
-      // Линия под пальцами (от мизинца к большому пальцу)
       s.bezierCurveTo(sign * -0.3, 4.8, sign * 0.7, 4.8, sign * 0.9, 3.8);  
-      // Внутренняя плюсна и глубокий свод (арка)
       s.bezierCurveTo(sign * 1.0, 2.8, sign * 0.4, 1.8, sign * 0.4, 0.8);    
-      // Возврат к круглой внутренней пятке
       s.bezierCurveTo(sign * 0.4, -0.2, sign * 0.4, -0.6, 0, -0.6);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
@@ -177,17 +150,16 @@
       // === 3D ЯКОРЯ ===
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
-        anchor.position.set(x, y, 0.45); // Выше поверхности стопы
+        anchor.position.set(x, y, 0.45); 
         anchor.userData = { btnId: 'btn-' + id };
         footGroup.add(anchor);
         uiAnchors.push(anchor);
       }
 
-      // Откалиброванные координаты: Красный на круглой пятке
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, 0.0);        // Центр пятки
-        attachAnchor('L_Yel', 0.65, 3.2);       // Внутренняя плюсна
-        attachAnchor('L_Blu', -0.5, 2.8);       // Внешний свод
+        attachAnchor('L_Red', 0.0, 0.0);        
+        attachAnchor('L_Yel', 0.65, 3.2);       
+        attachAnchor('L_Blu', -0.5, 2.8);       
       } else {
         attachAnchor('R_Red', 0.0, 0.0);       
         attachAnchor('R_Yel', -0.65, 3.2);       
@@ -195,10 +167,10 @@
       }
 
       const wrapper = new THREE.Group();
-      footGroup.rotation.x = -Math.PI / 2; // Кладем горизонтально
+      footGroup.rotation.x = -Math.PI / 2; 
       footGroup.position.set(0, 0, 0);     
       
-      wrapper.scale.set(1.2, 1.2, 1.2); 
+      wrapper.scale.set(1.1, 1.1, 1.1); 
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -206,18 +178,17 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Раздвигаем стопы шире по оси X
-    meshLeftFoot.position.set(-1.8, 0, 1.5); 
-    meshRightFoot.position.set(1.8, 0, 1.5);
+    meshLeftFoot.position.set(-1.6, 0, 1.0); 
+    meshRightFoot.position.set(1.6, 0, 1.0);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // КАМЕРА: Поднята высоко вверх (почти вид сверху), легкий угол для 3D глубины
-    camera.position.set(0, 11.0, 4.0); 
-    camera.lookAt(0, 0, 1.5); 
+    // Оптимизированная камера для окна высотой 250px
+    camera.position.set(0, 10.0, 5.0); 
+    camera.lookAt(0, 0, 1.0); 
 
     // === ДВИЖОК ПРОЕКЦИИ UI ===
     function updateUIElements() {
@@ -256,6 +227,14 @@
     chartLeft.addTimeSeries(lines['L_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartLeft.addTimeSeries(lines['L_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
     chartRight.addTimeSeries(lines['R_Red'], { strokeStyle: colors.Red, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Yel'], { strokeStyle: colors.Yel, lineWidth: 2 }); chartRight.addTimeSeries(lines['R_Blu'], { strokeStyle: colors.Blu, lineWidth: 2 });
 
+    // Вспомогательная функция для вывода процентов в кнопки
+    function updateBtnDisplay(id, value, total) {
+      const btn = document.getElementById(id);
+      if (btn && btn.classList.contains('connected')) {
+        btn.innerText = (total > 10) ? Math.round((value / total) * 100) + '%' : '0%';
+      }
+    }
+
     // === ЛОГИКА ===
     function renderFrame(state) {
       let lTot = state.calValues['L_Red'] + state.calValues['L_Yel'] + state.calValues['L_Blu'];
@@ -267,17 +246,13 @@
         document.getElementById('right-pct').innerText = Math.round((rTot / tTot) * 100) + '%';
       } else { document.getElementById('left-pct').innerText = '0%'; document.getElementById('right-pct').innerText = '0%'; }
 
-      if (lTot > 10) {
-        document.getElementById('l-heel').innerText = Math.round((state.calValues['L_Red'] / lTot) * 100) + '%';
-        document.getElementById('l-in').innerText = Math.round((state.calValues['L_Yel'] / lTot) * 100) + '%';
-        document.getElementById('l-out').innerText = Math.round((state.calValues['L_Blu'] / lTot) * 100) + '%';
-      } else { document.getElementById('l-heel').innerText = '0%'; document.getElementById('l-in').innerText = '0%'; document.getElementById('l-out').innerText = '0%'; }
-
-      if (rTot > 10) {
-        document.getElementById('r-heel').innerText = Math.round((state.calValues['R_Red'] / rTot) * 100) + '%';
-        document.getElementById('r-in').innerText = Math.round((state.calValues['R_Yel'] / rTot) * 100) + '%';
-        document.getElementById('r-out').innerText = Math.round((state.calValues['R_Blu'] / rTot) * 100) + '%';
-      } else { document.getElementById('r-heel').innerText = '0%'; document.getElementById('r-in').innerText = '0%'; document.getElementById('r-out').innerText = '0%'; }
+      // Вывод процентов прямо в кнопки (если они подключены)
+      updateBtnDisplay('btn-L_Red', state.calValues['L_Red'], lTot);
+      updateBtnDisplay('btn-L_Yel', state.calValues['L_Yel'], lTot);
+      updateBtnDisplay('btn-L_Blu', state.calValues['L_Blu'], lTot);
+      updateBtnDisplay('btn-R_Red', state.calValues['R_Red'], rTot);
+      updateBtnDisplay('btn-R_Yel', state.calValues['R_Yel'], rTot);
+      updateBtnDisplay('btn-R_Blu', state.calValues['R_Blu'], rTot);
 
       Object.keys(CALIBRATION).forEach(s => {
         document.getElementById(`val-${s}`).innerText = state.calValues[s];
