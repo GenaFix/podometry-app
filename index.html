@@ -25,7 +25,7 @@
     .balance-values { font-size: 20px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* === НОВЫЙ ОБЪЕДИНЕННЫЙ БЛОК (3D + КНОПКИ + ПРОЦЕНТЫ) === */
+    /* ИНТЕРАКТИВНЫЙ БЛОК (3D + UI) */
     .workspace { position: relative; width: 100%; height: 350px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 12px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
@@ -78,7 +78,7 @@
     <div class="balance-values">ЛЕВ: <span id="left-pct">0%</span> | ПРАВ: <span id="right-pct">0%</span></div>
   </div>
 
-  <!-- 3. НОВЫЙ ИНТЕРАКТИВНЫЙ БЛОК (3D + UI) -->
+  <!-- 3. ИНТЕРАКТИВНЫЙ БЛОК (3D + UI) -->
   <div class="workspace">
     <div id="canvas-3d"></div>
     
@@ -134,31 +134,36 @@
     container3d.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5); dirLight.position.set(0, 10, 5); scene.add(dirLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6); 
+    dirLight.position.set(0, 10, 5); 
+    scene.add(dirLight);
 
-    function createAnatomicFootMesh(isLeft, colorHex) {
+    function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
-      const sign = isLeft ? 1 : -1; // 1 = Левая, -1 = Правая
-      const material = new THREE.MeshPhongMaterial({ color: colorHex, transparent: true, opacity: 0.9, shininess: 30 });
-      const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
+      const sign = isLeft ? 1 : -1; 
+      
+      // Нейтральный темно-серый цвет для стопы, чтобы датчики выделялись
+      const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8, shininess: 50 });
+      const extrudeSettings = { depth: 0.25, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 };
 
-      // Основной контур стопы
+      // Анатомически точный контур
       const s = new THREE.Shape();
-      s.moveTo(0, 0); // Пятка
-      s.bezierCurveTo(sign * -0.5, 0.2, sign * -0.6, 1.5, sign * -0.5, 3.0); // Внешний край
-      s.bezierCurveTo(sign * -0.4, 3.5, sign * 0.6, 3.7, sign * 0.8, 3.0);   // Носок (под пальцами)
-      s.bezierCurveTo(sign * 0.9, 1.5, sign * 0.1, 1.0, sign * 0.2, -0.2);   // Внутренний край (свод)
-      s.bezierCurveTo(sign * 0.2, -0.5, sign * -0.1, -0.5, 0, 0);            // Замыкание пятки
+      s.moveTo(0, 0); // Низ пятки
+      s.bezierCurveTo(sign * -0.3, 0.0, sign * -0.4, 0.5, sign * -0.4, 1.5); // Внешний край пятки к середине
+      s.bezierCurveTo(sign * -0.4, 2.5, sign * -0.5, 3.2, sign * -0.3, 3.6); // Внешний край к мизинцу
+      s.bezierCurveTo(sign * -0.1, 4.0, sign * 0.5, 3.8, sign * 0.6, 3.4);   // Широкая плюсна (под пальцами)
+      s.bezierCurveTo(sign * 0.7, 2.8, sign * 0.1, 2.0, sign * 0.1, 1.2);    // Глубокий внутренний свод
+      s.bezierCurveTo(sign * 0.1, 0.5, sign * 0.3, 0.0, 0, 0);               // Возврат к пятке
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // 5 Пальцев
+      // Анатомические пальцы
       const toesData = [
-        { x: sign * 0.6, y: 3.6, r: 0.35 },  // Большой палец
-        { x: sign * 0.2, y: 3.8, r: 0.25 },
-        { x: sign * -0.1, y: 3.7, r: 0.2 },
-        { x: sign * -0.35, y: 3.5, r: 0.18 },
-        { x: sign * -0.55, y: 3.2, r: 0.15 } // Мизинец
+        { x: sign * 0.45, y: 4.1, r: 0.28 }, // Большой палец
+        { x: sign * 0.15, y: 4.3, r: 0.20 }, // Второй
+        { x: sign * -0.1, y: 4.2, r: 0.16 }, // Третий
+        { x: sign * -0.3, y: 4.0, r: 0.14 }, // Четвертый
+        { x: sign * -0.45,y: 3.7, r: 0.12 }  // Мизинец
       ];
       toesData.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -166,28 +171,25 @@
         footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
       });
 
-      // Подготовка для правильного вращения и вида от 1-го лица
       const wrapper = new THREE.Group();
-      footGroup.rotation.x = -Math.PI / 2; // Кладем горизонтально на пол
-      footGroup.position.set(0, 0, 0);     // Центр вращения - ПЯТКА (Z=0, Y=0)
+      footGroup.rotation.x = -Math.PI / 2; // Горизонтально
+      footGroup.position.set(0, 0, 0);     // Центр вращения - Пятка
       wrapper.add(footGroup);
       return wrapper;
     }
 
-    const meshLeftFoot = createAnatomicFootMesh(true, 0x0a84ff);
-    const meshRightFoot = createAnatomicFootMesh(false, 0xff3b30);
-    meshLeftFoot.position.set(-1.3, 0, 0); // Раздвигаем стопы
+    const meshLeftFoot = createAnatomicFootMesh(true);
+    const meshRightFoot = createAnatomicFootMesh(false);
+    meshLeftFoot.position.set(-1.3, 0, 0); 
     meshRightFoot.position.set(1.3, 0, 0);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
-    // Сетка на полу
     const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x222222);
     gridHelper.position.y = -0.5;
     scene.add(gridHelper);
 
-    // Камера СЗАДИ-СВЕРХУ (Как будто вы смотрите на свои ноги)
-    camera.position.set(0, 6.5, 3.5); 
-    camera.lookAt(0, 0, -2); // Смотрим в центр стоп (между пяткой и носком)
+    camera.position.set(0, 7, 3); 
+    camera.lookAt(0, 0, -1.5); 
 
     function animate3D() { requestAnimationFrame(animate3D); renderer.render(scene, camera); }
     animate3D();
