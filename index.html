@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Стабильный Интерфейс</title>
+  <title>Подометрия PRO - Финальная фиксация</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -23,11 +23,11 @@
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* РАБОЧАЯ ЗОНА (Оптимизирована по высоте для графиков внизу) */
+    /* РАБОЧАЯ ЗОНА */
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* Стабильные CSS-координаты кнопок относительно рабочей зоны */
+    /* Стабильные CSS-координаты кнопок по центру экрана */
     .sensor-btn { 
       position: absolute; width: 42px; height: 42px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.3); color: white; 
@@ -41,13 +41,14 @@
     .sensor-btn .pct { font-size: 8px; opacity: 0.8; }
     .sensor-btn.disconnected { font-size: 9px; font-weight: bold; }
 
-    #btn-L_Red { background: #ff3b30; bottom: 15%; left: 30%; }
-    #btn-L_Yel { background: #ffcc00; color: #000; top: 32%; left: 38%; }
-    #btn-L_Blu { background: #0a84ff; top: 32%; left: 18%; }
+    /* Четко расставляем кнопки по анатомическим зонам стоп */
+    #btn-L_Red { background: #ff3b30; bottom: 20%; left: 32%; }
+    #btn-L_Yel { background: #ffcc00; color: #000; top: 35%; left: 38%; }
+    #btn-L_Blu { background: #0a84ff; top: 35%; left: 22%; }
 
-    #btn-R_Red { background: #ff3b30; bottom: 15%; right: 30%; left: auto; }
-    #btn-R_Yel { background: #ffcc00; color: #000; top: 32%; right: 38%; left: auto; }
-    #btn-R_Blu { background: #0a84ff; top: 32%; right: 18%; left: auto; }
+    #btn-R_Red { background: #ff3b30; bottom: 20%; right: 32%; left: auto; }
+    #btn-R_Yel { background: #ffcc00; color: #000; top: 35%; right: 38%; left: auto; }
+    #btn-R_Blu { background: #0a84ff; top: 35%; right: 22%; left: auto; }
     
     .sensor-btn:active { transform: translate(-50%, -50%) scale(0.9); }
     .connected { border-color: #34c759 !important; box-shadow: 0 0 15px rgba(52,199,89,0.9); }
@@ -128,21 +129,21 @@
       const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      s.moveTo(0, -0.6); 
-      s.bezierCurveTo(sign * -0.6, -0.6, sign * -0.7, 0.2, sign * -0.7, 1.2); 
-      s.bezierCurveTo(sign * -0.8, 2.5, sign * -0.9, 3.5, sign * -0.8, 4.2);  
-      s.bezierCurveTo(sign * -0.4, 4.8, sign * 0.7, 4.8, sign * 0.9, 3.8);  
-      s.bezierCurveTo(sign * 1.0, 2.8, sign * 0.5, 1.8, sign * 0.4, 0.8);    
-      s.bezierCurveTo(sign * 0.4, -0.2, sign * 0.4, -0.6, 0, -0.6);             
+      s.moveTo(0, -1.0); 
+      s.bezierCurveTo(sign * -0.6, -1.0, sign * -0.7, 0.0, sign * -0.7, 1.0); 
+      s.bezierCurveTo(sign * -0.8, 2.2, sign * -0.9, 3.2, sign * -0.8, 4.0);  
+      s.bezierCurveTo(sign * -0.4, 4.6, sign * 0.7, 4.6, sign * 0.9, 3.6);  
+      s.bezierCurveTo(sign * 1.0, 2.6, sign * 0.5, 1.6, sign * 0.4, 0.6);    
+      s.bezierCurveTo(sign * 0.4, -0.4, sign * 0.4, -1.0, 0, -1.0);             
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
       const toes = [
-        { x: sign * 0.6,  y: 4.8, r: 0.35 }, 
-        { x: sign * 0.15, y: 5.0, r: 0.25 }, 
-        { x: sign * -0.2, y: 4.8, r: 0.20 }, 
-        { x: sign * -0.45,y: 4.4, r: 0.16 }, 
-        { x: sign * -0.65,y: 3.9, r: 0.13 }  
+        { x: sign * 0.6,  y: 4.6, r: 0.35 }, 
+        { x: sign * 0.15, y: 4.8, r: 0.25 }, 
+        { x: sign * -0.2, y: 4.6, r: 0.20 }, 
+        { x: sign * -0.45,y: 4.2, r: 0.16 }, 
+        { x: sign * -0.65,y: 3.7, r: 0.13 }  
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -153,7 +154,7 @@
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
       footGroup.position.set(0, 0, 0);     
-      wrapper.scale.set(1.0, 1.0, 1.0);
+      wrapper.scale.set(0.9, 0.9, 0.9);
       wrapper.add(footGroup);
       return wrapper;
     }
@@ -161,18 +162,18 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Жестко фиксируем стопы в центре экрана
-    meshLeftFoot.position.set(-1.1, 0, 0.5); 
-    meshRightFoot.position.set(1.1, 0, 0.5);
+    // Позиционируем стопы строго по центру экрана
+    meshLeftFoot.position.set(-1.1, 0, 0.2); 
+    meshRightFoot.position.set(1.1, 0, 0.2);
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
     const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
     gridHelper.position.y = -0.2;
     scene.add(gridHelper);
 
-    // Стабильная камера
-    camera.position.set(0, 7.5, 5.5); 
-    camera.lookAt(0, 0, 0.5); 
+    // Фиксированная камера с идеальным обзором всей стопы целиком
+    camera.position.set(0, 6.0, 5.5); 
+    camera.lookAt(0, 0, 0.2); 
 
     function animate3D() { 
       requestAnimationFrame(animate3D); 
