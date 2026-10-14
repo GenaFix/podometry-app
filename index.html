@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - 3D & Запись</title>
+  <title>Подометрия PRO - 3D Анатомия & Запись</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -34,7 +34,7 @@
     #left-pct, #right-pct { display: inline-block; width: 60px; font-family: monospace; text-align: left; }
     
     /* 3D Окно */
-    #canvas-3d-container { width: 100%; height: 200px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; position: relative; overflow: hidden; }
+    #canvas-3d-container { width: 100%; height: 220px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; position: relative; overflow: hidden; }
     .hint-3d { position: absolute; top: 10px; left: 10px; font-size: 10px; color: #888; font-weight: bold; z-index: 10; }
 
     /* Панели датчиков */
@@ -116,7 +116,7 @@
     let isRecording = false;
     let isPlaying = false;
 
-    // 2. 3D СЦЕНА И АНАТОМИЧЕСКАЯ ФОРМА СТОПЫ
+    // 2. 3D СЦЕНА И АНАТОМИЧЕСКАЯ ФОРМА СТОПЫ (С ПАЛЬЦАМИ)
     const container3d = document.getElementById('canvas-3d-container');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, container3d.clientWidth / container3d.clientHeight, 0.1, 1000);
@@ -129,25 +129,53 @@
     dirLight.position.set(0, 10, 5);
     scene.add(dirLight);
 
-    // Функция создания 2D контура реальной стопы
-    function createAnatomicFoot(isLeft) {
-      const s = new THREE.Shape();
-      const sign = isLeft ? 1 : -1;
-      s.moveTo(0, 0); // Центр пятки
-      s.bezierCurveTo(sign * 0.5, 0.2, sign * 0.6, 1.5, sign * 0.5, 2.0); // Внешний свод
-      s.bezierCurveTo(sign * 0.5, 3.5, sign * 0.4, 4.2, sign * 0.1, 4.5); // Мизинец к большому пальцу
-      s.bezierCurveTo(sign * -0.2, 4.7, sign * -0.4, 4.3, sign * -0.5, 3.8); // Большой палец
-      s.bezierCurveTo(sign * -0.6, 2.5, sign * -0.2, 1.5, sign * -0.3, 0.5); // Внутренний свод (арка)
-      s.bezierCurveTo(sign * -0.4, 0, sign * -0.2, -0.2, 0, 0); // Возврат к пятке
+    // Функция создания детализированной анатомической стопы с пальцами
+    function createAnatomicFootMesh(isLeft, colorHex) {
+      const footGroup = new THREE.Group();
+      const sign = isLeft ? -1 : 1; 
+      const material = new THREE.MeshPhongMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
 
-      const geo = new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 2 });
-      geo.center(); // Точка вращения ровно по центру массы
-      geo.rotateX(Math.PI / 2); // Кладем стопу горизонтально
-      return geo;
+      // 2.1 Основная стопа (пятка, свод, плюсна)
+      const s = new THREE.Shape();
+      s.moveTo(0, 0); 
+      s.bezierCurveTo(sign * 0.4, 0, sign * 0.5, 2.0, sign * 0.4, 3.5); 
+      s.bezierCurveTo(sign * 0.2, 3.8, sign * -0.6, 3.8, sign * -0.8, 3.2); 
+      s.bezierCurveTo(sign * -1.0, 2.5, sign * -0.1, 1.5, sign * -0.2, 0.5); 
+      s.bezierCurveTo(sign * -0.2, 0, sign * -0.2, 0, 0, 0); 
+
+      const extrudeSettings = { depth: 0.2, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 };
+      const mainMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material);
+      footGroup.add(mainMesh);
+
+      // 2.2 Добавление 5 пальцев
+      const toesData = [
+        { x: sign * -0.6, y: 4.1, r: 0.25 }, // Большой палец
+        { x: sign * -0.2, y: 4.3, r: 0.18 }, // Второй
+        { x: sign * 0.1,  y: 4.2, r: 0.15 }, // Третий
+        { x: sign * 0.35, y: 4.0, r: 0.12 }, // Четвертый
+        { x: sign * 0.5,  y: 3.7, r: 0.10 }  // Мизинец
+      ];
+
+      toesData.forEach(toe => {
+        const toeShape = new THREE.Shape();
+        toeShape.absarc(toe.x, toe.y, toe.r, 0, Math.PI * 2, false);
+        const toeMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material);
+        footGroup.add(toeMesh);
+      });
+
+      // Сдвигаем геометрию так, чтобы центр вращения был в районе лодыжки/пятки
+      footGroup.position.set(0, -1.5, -0.1);
+
+      // Обертка для правильного расположения в 3D пространстве
+      const wrapper = new THREE.Group();
+      wrapper.add(footGroup);
+      wrapper.rotation.x = Math.PI / 2; // Кладем стопу на пол
+      return wrapper;
     }
 
-    const meshLeftFoot = new THREE.Mesh(createAnatomicFoot(true), new THREE.MeshPhongMaterial({ color: 0x0a84ff, transparent: true, opacity: 0.85 }));
-    const meshRightFoot = new THREE.Mesh(createAnatomicFoot(false), new THREE.MeshPhongMaterial({ color: 0xff3b30, transparent: true, opacity: 0.85 }));
+    const meshLeftFoot = createAnatomicFootMesh(true, 0x0a84ff);
+    const meshRightFoot = createAnatomicFootMesh(false, 0xff3b30);
+    
     meshLeftFoot.position.set(-1.2, 0, 0);
     meshRightFoot.position.set(1.2, 0, 0);
     scene.add(meshLeftFoot);
@@ -307,7 +335,6 @@
 
               // Если нажата кнопка записи, сохраняем слепок данных
               if (isRecording) {
-                // Глубокая копия текущего состояния
                 recordBuffer.push(JSON.parse(JSON.stringify(currentState))); 
               }
             }
