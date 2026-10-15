@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Широкая и Тонкая Стопа</title>
+  <title>Подометрия PRO - Широкая Пятка и Центровка</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,7 +27,11 @@
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* ВЕРТИКАЛЬНЫЙ ПОЛЗУНОК МЕЖДУ СТОПАМИ */
+    /* КНОПКА ЦЕНТРОВКИ */
+    .btn-tare { position: absolute; top: 10px; right: 10px; z-index: 30; background: rgba(28,28,30,0.8); border: 1px solid #0a84ff; color: #0a84ff; border-radius: 6px; padding: 6px 10px; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .btn-tare:active { background: #0a84ff; color: #fff; }
+
+    /* ВЕРТИКАЛЬНЫЙ ПОЛЗУНОК */
     .vertical-slider-container {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       height: 140px; width: 30px; z-index: 25; pointer-events: none;
@@ -90,6 +94,9 @@
   <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
     
+    <!-- Кнопка калибровки (установки нуля) -->
+    <button id="btn-tare" class="btn-tare">🎯 ЦЕНТРОВКА 3D</button>
+    
     <div class="vertical-slider-container">
       <input type="range" id="camera-angle-slider" class="vertical-slider" min="1.5" max="6.5" step="0.2" value="3.5">
     </div>
@@ -114,7 +121,16 @@
   <script>
     const CALIBRATION = { 'L_Red': 1.408, 'L_Yel': 6.667, 'L_Blu': 0.840, 'R_Red': 3.125, 'R_Yel': 0.556, 'R_Blu': 1.786 };
     let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 } };
+    
+    // Базовая линия для калибровки 3D модели
+    let baselineAngles = { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 };
+    
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
+
+    document.getElementById('btn-tare').onclick = () => {
+      baselineAngles = { ...currentState.angles };
+      renderFrame(currentState); // Немедленно перерисовываем
+    };
 
     // === THREE.JS СЦЕНА ===
     const container3d = document.getElementById('canvas-3d');
@@ -144,27 +160,26 @@
       const sign = isLeft ? 1 : -1; 
       
       const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 40 });
-      // ДЕЛАЕМ ТОНКУЮ ПОДОШВУ (глубина 0.1 вместо 0.35)
       const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      // ШИРОКАЯ ФОРМА СТОПЫ
-      s.moveTo(0, -1.5); 
-      s.bezierCurveTo(sign * -0.6, -1.5, sign * -0.6, -0.5, sign * -0.6, 0.5);   // Широкая пятка (внешний край)
-      s.bezierCurveTo(sign * -0.6, 2.0, sign * -1.4, 3.0, sign * -1.4, 4.0);     // Очень широкая плюсна (внешний край)
-      s.bezierCurveTo(sign * -1.4, 5.0, sign * 1.4, 5.0, sign * 1.4, 4.0);       // Линия пальцев (максимальная ширина)
-      s.bezierCurveTo(sign * 1.4, 3.0, sign * 0.4, 1.5, sign * 0.4, 0.0);        // Глубокий внутренний свод (арка)
-      s.bezierCurveTo(sign * 0.4, -1.0, sign * 0.6, -1.5, 0, -1.5);              // Возврат к широкой пятке
+      // ИСПРАВЛЕНА ПЯТКА: Теперь у нее широкое скругленное основание
+      s.moveTo(sign * 0.3, -1.3); 
+      s.bezierCurveTo(sign * 0.3, -1.6, sign * -0.6, -1.6, sign * -0.6, -1.0);  // Широкий скругленный низ пятки
+      s.bezierCurveTo(sign * -0.6, 0.0, sign * -0.6, 1.0, sign * -0.7, 2.0);   // Переход к внешнему краю
+      s.bezierCurveTo(sign * -0.8, 3.0, sign * -1.4, 3.5, sign * -1.4, 4.2);   // Широкая плюсна снаружи
+      s.bezierCurveTo(sign * -1.4, 5.2, sign * 1.3, 5.2, sign * 1.3, 4.2);     // Широкая линия пальцев
+      s.bezierCurveTo(sign * 1.3, 3.5, sign * 0.5, 2.5, sign * 0.5, 1.0);      // Внутренний свод (арка)
+      s.bezierCurveTo(sign * 0.5, 0.0, sign * 0.3, -1.0, sign * 0.3, -1.3);    // Возврат к пятке
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
-      // Крупные пальцы по широкой дуге
       const toes = [
-        { x: sign * 1.0,  y: 4.8, r: 0.45 }, // Большой палец внутри
-        { x: sign * 0.4,  y: 5.1, r: 0.35 }, 
-        { x: sign * -0.1, y: 5.0, r: 0.30 }, 
-        { x: sign * -0.6, y: 4.7, r: 0.25 }, 
-        { x: sign * -1.0, y: 4.3, r: 0.20 }  // Мизинец снаружи
+        { x: sign * 0.9,  y: 4.9, r: 0.45 }, // Большой палец
+        { x: sign * 0.35, y: 5.2, r: 0.35 }, 
+        { x: sign * -0.15,y: 5.1, r: 0.30 }, 
+        { x: sign * -0.6, y: 4.8, r: 0.25 }, 
+        { x: sign * -1.0, y: 4.4, r: 0.20 }  // Мизинец
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -174,27 +189,24 @@
 
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
-        // Z-координата привязки уменьшена из-за тонкой подошвы
         anchor.position.set(x, y, 0.15); 
         anchor.userData = { btnId: 'btn-' + id };
         footGroup.add(anchor);
         uiAnchors.push(anchor);
       }
 
-      // Датчики расставлены по новой широкой форме
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, -1.0);  // Пятка
-        attachAnchor('L_Yel', 0.9, 3.5);   // Желтый (арка/большой палец) внутри
-        attachAnchor('L_Blu', -0.9, 3.3);  // Синий (мизинец) снаружи
+        attachAnchor('L_Red', 0.0, -1.0);  
+        attachAnchor('L_Yel', 0.8, 3.4);   
+        attachAnchor('L_Blu', -0.8, 3.4);  
       } else {
         attachAnchor('R_Red', 0.0, -1.0);  
-        attachAnchor('R_Yel', -0.9, 3.5);  // Желтый внутри
-        attachAnchor('R_Blu', 0.9, 3.3);   // Синий снаружи
+        attachAnchor('R_Yel', -0.8, 3.4);  
+        attachAnchor('R_Blu', 0.8, 3.4);   
       }
 
       const wrapper = new THREE.Group();
       footGroup.rotation.x = -Math.PI / 2; 
-      // Масштаб немного уменьшен (с 1.3 до 1.1), чтобы носки не вылезали за экран
       wrapper.scale.set(1.1, 1.1, 1.1);
       wrapper.add(footGroup);
       return wrapper;
@@ -203,13 +215,10 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Сдвинули стопы ниже по оси Y (-0.6), чтобы они точно не обрезались сверху
+    // Сдвиг вниз (-0.8), чтобы стопы не обрезались экраном сверху
     const baseOutwardAngle = Math.PI * 0.08;
-    meshLeftFoot.position.set(-1.8, -0.6, 0.2); 
-    meshLeftFoot.rotation.y = baseOutwardAngle;
-
-    meshRightFoot.position.set(1.8, -0.6, 0.2); 
-    meshRightFoot.rotation.y = -baseOutwardAngle;
+    meshLeftFoot.position.set(-1.8, -0.8, 0.2); 
+    meshRightFoot.position.set(1.8, -0.8, 0.2); 
 
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
@@ -223,7 +232,7 @@
       const height = parseFloat(angleSlider.value);
       camera.position.set(0, height, 5.5 - (height * 0.2));
       // Камера смотрит ниже (вслед за опущенными стопами)
-      camera.lookAt(0, -0.6, 0);
+      camera.lookAt(0, -0.8, 0);
     }
 
     angleSlider.oninput = updateCameraPosition;
@@ -299,14 +308,22 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Динамическое применение углов, включая Yaw
-      meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
-      meshLeftFoot.rotation.y = baseOutwardAngle + THREE.MathUtils.degToRad(state.angles['L_Yaw']);
-      meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
+      // Вычисление смещения относительно базовой линии центровки
+      let dL_Pitch = state.angles['L_Pitch'] - baselineAngles['L_Pitch'];
+      let dL_Roll = state.angles['L_Roll'] - baselineAngles['L_Roll'];
+      let dL_Yaw = state.angles['L_Yaw'] - baselineAngles['L_Yaw'];
 
-      meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
-      meshRightFoot.rotation.y = -baseOutwardAngle + THREE.MathUtils.degToRad(state.angles['R_Yaw']);
-      meshRightFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['R_Roll']);
+      let dR_Pitch = state.angles['R_Pitch'] - baselineAngles['R_Pitch'];
+      let dR_Roll = state.angles['R_Roll'] - baselineAngles['R_Roll'];
+      let dR_Yaw = state.angles['R_Yaw'] - baselineAngles['R_Yaw'];
+
+      meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(dL_Pitch);
+      meshLeftFoot.rotation.y = baseOutwardAngle + THREE.MathUtils.degToRad(dL_Yaw);
+      meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-dL_Roll);
+
+      meshRightFoot.rotation.x = THREE.MathUtils.degToRad(dR_Pitch);
+      meshRightFoot.rotation.y = -baseOutwardAngle + THREE.MathUtils.degToRad(dR_Yaw);
+      meshRightFoot.rotation.z = THREE.MathUtils.degToRad(-dR_Roll);
     }
 
     const btnRecord = document.getElementById('btn-record'); const btnStop = document.getElementById('btn-stop'); const btnPlay = document.getElementById('btn-play');
