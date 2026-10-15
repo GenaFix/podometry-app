@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Точная Фиксация</title>
+  <title>Подометрия PRO - Естественная Стойка + Yaw Гироскоп</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -114,7 +114,8 @@
 
   <script>
     const CALIBRATION = { 'L_Red': 1.408, 'L_Yel': 6.667, 'L_Blu': 0.840, 'R_Red': 3.125, 'R_Yel': 0.556, 'R_Blu': 1.786 };
-    let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'R_Pitch':0, 'R_Roll':0 } };
+    // Добавлены параметры Yaw для горизонтального вращения носка
+    let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 } };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
     // === THREE.JS СЦЕНА ===
@@ -142,28 +143,28 @@
 
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
-      // Зеркальный коэффициент для правильной ориентации арки стопы наружу/внутрь
       const sign = isLeft ? 1 : -1; 
       
       const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 40 });
       const extrudeSettings = { depth: 0.35, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
       const s = new THREE.Shape();
-      s.moveTo(0, -1.1); 
-      s.bezierCurveTo(sign * -0.45, -1.1, sign * -0.55, -0.2, sign * -0.55, 0.8);  // Пятка
-      s.bezierCurveTo(sign * -0.55, 2.2, sign * -1.3, 3.4, sign * -1.2, 4.5);   // Внешний край
-      s.bezierCurveTo(sign * -0.7, 5.4, sign * 0.7, 5.4, sign * 1.2, 4.5);    // Пальцы
-      s.bezierCurveTo(sign * 1.2, 3.4, sign * 0.55, 2.2, sign * 0.55, 0.8);    // Внутренний свод (арка)
-      s.bezierCurveTo(sign * 0.55, -0.2, sign * 0.45, -1.1, 0, -1.1);             // Возврат
+      // Строго прямая, ровная форма стопы (без агрессивного изгиба внутрь)
+      s.moveTo(0, -1.2); 
+      s.bezierCurveTo(sign * -0.4, -1.2, sign * -0.5, 0.0, sign * -0.5, 1.5);  // Внешний край ровный
+      s.bezierCurveTo(sign * -0.5, 3.0, sign * -0.7, 4.5, sign * -0.6, 5.0);   
+      s.bezierCurveTo(sign * 0.0, 5.4, sign * 0.8, 5.2, sign * 1.0, 4.8);      // Линия пальцев
+      s.bezierCurveTo(sign * 1.0, 3.0, sign * 0.5, 1.5, sign * 0.5, 0.0);      // Внутренний край ровный
+      s.bezierCurveTo(sign * 0.5, -1.0, sign * 0.4, -1.2, 0, -1.2);            
       
       footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
 
       const toes = [
-        { x: sign * 0.85, y: 5.0, r: 0.44 }, 
-        { x: sign * 0.35, y: 5.3, r: 0.32 }, 
-        { x: sign * -0.1, y: 5.2, r: 0.26 }, 
-        { x: sign * -0.55,y: 4.9, r: 0.20 }, 
-        { x: sign * -0.9, y: 4.4, r: 0.16 }  
+        { x: sign * 0.8,  y: 5.0, r: 0.40 }, // Большой палец внутри
+        { x: sign * 0.35, y: 5.3, r: 0.30 }, 
+        { x: sign * -0.05,y: 5.2, r: 0.25 }, 
+        { x: sign * -0.45,y: 4.9, r: 0.20 }, 
+        { x: sign * -0.75,y: 4.5, r: 0.16 }  // Мизинец снаружи
       ];
       toes.forEach(toe => {
         const toeShape = new THREE.Shape();
@@ -179,15 +180,14 @@
         uiAnchors.push(anchor);
       }
 
-      // Возвращаем желтый датчик на внутренний свод (к центру), синий — на внешний край
       if (isLeft) {
-        attachAnchor('L_Red', 0.0, -0.8);  
-        attachAnchor('L_Yel', -0.8, 3.2);  // Желтый на внутренний свод (к центру)
-        attachAnchor('L_Blu', 0.8, 3.0);   // Синий на внешний край
+        attachAnchor('L_Red', 0.0, -0.7);  
+        attachAnchor('L_Yel', 0.8, 3.2);   // Желтый строго внутри
+        attachAnchor('L_Blu', -0.6, 3.0);  // Синий строго снаружи
       } else {
-        attachAnchor('R_Red', 0.0, -0.8);  
-        attachAnchor('R_Yel', 0.8, 3.2);   // Желтый на внутренний свод (к центру)
-        attachAnchor('R_Blu', -0.8, 3.0);  // Синий на внешний край
+        attachAnchor('R_Red', 0.0, -0.7);  
+        attachAnchor('R_Yel', -0.8, 3.2);  // Желтый строго внутри
+        attachAnchor('R_Blu', 0.6, 3.0);   // Синий строго снаружи
       }
 
       const wrapper = new THREE.Group();
@@ -200,9 +200,13 @@
     const meshLeftFoot = createAnatomicFootMesh(true);
     const meshRightFoot = createAnatomicFootMesh(false);
     
-    // Строго ровное параллельное положение стоп
+    // Идеальная анатомическая стойка (носки слегка развернуты наружу)
+    const baseOutwardAngle = Math.PI * 0.08; // 14 градусов наружу
     meshLeftFoot.position.set(-1.8, -0.3, 0.2); 
-    meshRightFoot.position.set(1.8, -0.3, 0.2);
+    meshLeftFoot.rotation.y = baseOutwardAngle;
+
+    meshRightFoot.position.set(1.8, -0.3, 0.2); 
+    meshRightFoot.rotation.y = -baseOutwardAngle;
 
     scene.add(meshLeftFoot); scene.add(meshRightFoot);
 
@@ -291,12 +295,13 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
+      // Применяем углы наклона (Pitch, Roll) от пятки, и рыскание (Yaw) от желтого датчика!
       meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['L_Pitch']);
-      meshLeftFoot.rotation.y = THREE.MathUtils.degToRad(state.angles['L_Roll'] * 0.2);
+      meshLeftFoot.rotation.y = baseOutwardAngle + THREE.MathUtils.degToRad(state.angles['L_Yaw']);
       meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['L_Roll']);
 
       meshRightFoot.rotation.x = THREE.MathUtils.degToRad(state.angles['R_Pitch']);
-      meshRightFoot.rotation.y = THREE.MathUtils.degToRad(state.angles['R_Roll'] * 0.2);
+      meshRightFoot.rotation.y = -baseOutwardAngle + THREE.MathUtils.degToRad(state.angles['R_Yaw']);
       meshRightFoot.rotation.z = THREE.MathUtils.degToRad(-state.angles['R_Roll']);
     }
 
@@ -327,13 +332,24 @@
             if (dataLines.length > 1) {
               for (let i = 0; i < dataLines.length - 1; i++) {
                 const parts = dataLines[i].trim().split(',');
-                if (parts.length === 3) {
-                  const rawFsr = parseInt(parts[0]); const pitch = parseInt(parts[1]); const roll = parseInt(parts[2]);
+                if (parts.length >= 3) {
+                  const rawFsr = parseInt(parts[0]); 
+                  const pitch = parseInt(parts[1]); 
+                  const roll = parseInt(parts[2]);
+                  // Читаем 4-й параметр Yaw (если прошивка его отправляет)
+                  const yaw = parts.length >= 4 ? parseInt(parts[3]) : 0; 
+
                   if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
 
                   currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
+
+                  // Красный датчик управляет наклонами пятки
                   if (sensor === 'L_Red') { currentState.angles['L_Pitch'] = pitch; currentState.angles['L_Roll'] = roll; }
                   if (sensor === 'R_Red') { currentState.angles['R_Pitch'] = pitch; currentState.angles['R_Roll'] = roll; }
+
+                  // Желтый датчик выступает гироскопом рыскания (поворота носка)
+                  if (sensor === 'L_Yel') { currentState.angles['L_Yaw'] = yaw; }
+                  if (sensor === 'R_Yel') { currentState.angles['R_Yaw'] = yaw; }
                 }
               }
               buffers[id] = dataLines[dataLines.length - 1];
