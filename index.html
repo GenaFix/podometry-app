@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Синхронизация Движений</title>
+  <title>Подометрия PRO - Живой Сустав и Кинематика</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,7 +27,7 @@
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ */
+    /* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: ПОЛЗУНОК + КНОПКА ЦЕНТРОВКИ */
     .center-controls {
       position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%);
       display: flex; flex-direction: column; align-items: center; gap: 25px;
@@ -124,11 +124,16 @@
 
   <script>
     const CALIBRATION = { 'L_Red': 1.408, 'L_Yel': 6.667, 'L_Blu': 0.840, 'R_Red': 3.125, 'R_Yel': 0.556, 'R_Blu': 1.786 };
-    let currentState = { calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, angles: { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 } };
+    let currentState = { 
+      calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, 
+      sensorAngles: {
+        'L_Red': { p:0, r:0, y:0 }, 'L_Yel': { p:0, r:0, y:0 }, 'L_Blu': { p:0, r:0, y:0 },
+        'R_Red': { p:0, r:0, y:0 }, 'R_Yel': { p:0, r:0, y:0 }, 'R_Blu': { p:0, r:0, y:0 }
+      },
+      angles: { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 } 
+    };
     
-    // Базовая линия для калибровки 3D модели
     let baselineAngles = { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 };
-    
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
     // Сброс положения (Центровка)
@@ -160,6 +165,11 @@
 
     const uiAnchors = [];
 
+    // Константы геометрии
+    const HINGE_Y = 3.6; // Ось виртуального сустава (плюсна)
+    const SCALE = 1.2;
+    const HINGE_DIST = HINGE_Y * SCALE;
+
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
       const sign = isLeft ? 1 : -1; 
@@ -167,34 +177,59 @@
       const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 40 });
       const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
-      const s = new THREE.Shape();
-      s.moveTo(0, -1.1); 
-      s.bezierCurveTo(sign * -0.45, -1.1, sign * -0.55, -0.2, sign * -0.55, 0.8);  
-      s.bezierCurveTo(sign * -0.55, 2.2, sign * -1.3, 3.4, sign * -1.2, 4.5);   
-      s.bezierCurveTo(sign * -0.7, 5.4, sign * 0.7, 5.4, sign * 1.2, 4.5);    
-      s.bezierCurveTo(sign * 1.2, 3.4, sign * 0.55, 2.2, sign * 0.55, 0.8);    
-      s.bezierCurveTo(sign * 0.55, -0.2, sign * 0.45, -1.1, 0, -1.1);             
+      // 1. ОСНОВНАЯ СТОПА (От пятки до виртуального сустава)
+      const heelShape = new THREE.Shape();
+      heelShape.moveTo(0, -1.1); 
+      heelShape.bezierCurveTo(sign * -0.45, -1.1, sign * -0.55, -0.2, sign * -0.55, 0.8);  
+      heelShape.bezierCurveTo(sign * -0.55, 2.2, sign * -1.3, 3.4, sign * -1.35, 3.65); // Расширение к суставу
+      heelShape.lineTo(sign * 1.0, 3.65); // Срез шарнира
+      heelShape.bezierCurveTo(sign * 1.0, 2.8, sign * 0.55, 2.2, sign * 0.55, 0.8);    
+      heelShape.bezierCurveTo(sign * 0.55, -0.2, sign * 0.45, -1.1, 0, -1.1);             
       
-      footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(s, extrudeSettings), material));
+      const heelMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(heelShape, extrudeSettings), material);
+
+      // 2. ПАЛЬЦЫ (Подвижная часть, прикрепленная к шарниру)
+      const toeShape = new THREE.Shape();
+      toeShape.moveTo(sign * -1.25, -0.05); // Старт относительно сустава
+      toeShape.bezierCurveTo(sign * -1.2, 0.4, sign * -1.2, 0.9, sign * -1.2, 0.9); 
+      toeShape.bezierCurveTo(sign * -0.7, 1.8, sign * 0.7, 1.8, sign * 1.2, 0.9); 
+      toeShape.bezierCurveTo(sign * 1.2, 0.5, sign * 1.05, 0.0, sign * 1.0, -0.05); 
+      toeShape.lineTo(sign * -1.25, -0.05);
+      
+      const toeMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material);
 
       const toes = [
-        { x: sign * 0.85, y: 5.0, r: 0.44 }, 
-        { x: sign * 0.35, y: 5.3, r: 0.32 }, 
-        { x: sign * -0.1, y: 5.2, r: 0.26 }, 
-        { x: sign * -0.55,y: 4.9, r: 0.20 }, 
-        { x: sign * -0.9, y: 4.4, r: 0.16 }  
+        { x: sign * 0.85, y: 1.4, r: 0.44 }, 
+        { x: sign * 0.35, y: 1.7, r: 0.32 }, 
+        { x: sign * -0.1, y: 1.6, r: 0.26 }, 
+        { x: sign * -0.55,y: 1.3, r: 0.20 }, 
+        { x: sign * -0.9, y: 0.8, r: 0.16 }  
       ];
       toes.forEach(toe => {
-        const toeShape = new THREE.Shape();
-        toeShape.absarc(toe.x, toe.y, toe.r, 0, Math.PI * 2, false);
-        footGroup.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShape, extrudeSettings), material));
+        const toeShapeC = new THREE.Shape();
+        toeShapeC.absarc(toe.x, toe.y, toe.r, 0, Math.PI * 2, false);
+        toeMesh.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShapeC, extrudeSettings), material));
       });
+
+      // СОБИРАЕМ КИНЕМАТИКУ
+      const heelGroup = new THREE.Group();
+      heelGroup.add(heelMesh);
+
+      // Виртуальный шарнир
+      const hingePivot = new THREE.Group();
+      hingePivot.position.set(0, HINGE_Y, 0); 
+      hingePivot.add(toeMesh);
+      
+      heelGroup.add(hingePivot);
+      footGroup.add(heelGroup);
+      footGroup.rotation.x = -Math.PI / 2; 
 
       function attachAnchor(id, x, y) {
         const anchor = new THREE.Object3D();
         anchor.position.set(x, y, 0.15); 
         anchor.userData = { btnId: 'btn-' + id };
-        footGroup.add(anchor);
+        // Датчики жестко крепятся к пятке/плюсне, до шарнира сгиба пальцев!
+        heelGroup.add(anchor);
         uiAnchors.push(anchor);
       }
 
@@ -209,9 +244,11 @@
       }
 
       const wrapper = new THREE.Group();
-      footGroup.rotation.x = -Math.PI / 2; 
-      wrapper.scale.set(1.2, 1.2, 1.2); 
+      wrapper.scale.set(SCALE, SCALE, SCALE); 
       wrapper.add(footGroup);
+      
+      // Сохраняем ссылку на шарнир для анимации
+      wrapper.userData = { hingePivot: hingePivot };
       return wrapper;
     }
 
@@ -219,6 +256,7 @@
     const meshRightFoot = createAnatomicFootMesh(false);
     
     const baseOutwardAngle = Math.PI * 0.08;
+    // Стартовая позиция по Y опущена, чтобы вместить подъем пятки
     meshLeftFoot.position.set(-1.7, -0.5, 0.2); 
     meshRightFoot.position.set(1.7, -0.5, 0.2); 
 
@@ -287,14 +325,43 @@
       }
     }
 
+    // МАГИЯ КИНЕМАТИКИ: Подъем пятки + сгибание пальцев
+    function applyKinematics(mesh, pitchDeg, rollDeg, yawDeg, frontPressure, isRight) {
+      let pitchRad = THREE.MathUtils.degToRad(-pitchDeg); 
+      let isHeelUp = pitchDeg > 3; // Если пятка поднята на >3 градуса
+
+      // Поворачиваем всю стопу вокруг оси пятки
+      mesh.rotation.x = pitchRad;
+      mesh.rotation.y = (isRight ? -baseOutwardAngle : baseOutwardAngle) + THREE.MathUtils.degToRad(yawDeg);
+      mesh.rotation.z = THREE.MathUtils.degToRad(-rollDeg);
+
+      // Если пятка в воздухе, а пальцы упираются в пол (динамическая опора)
+      if (isHeelUp && frontPressure > 0) {
+        // 1. Вычисляем, насколько глубоко шарнир "провалился" под землю из-за наклона
+        let dropY = Math.abs(HINGE_DIST * Math.sin(pitchRad));
+        let pullZ = HINGE_DIST - (HINGE_DIST * Math.cos(pitchRad));
+        
+        // 2. Компенсируем этот провал, поднимая всю стопу вверх по дуге!
+        mesh.position.y = -0.5 + dropY;
+        mesh.position.z = 0.2 - pullZ;
+        
+        // 3. Выгибаем пальцы в обратную сторону, чтобы они остались лежать ровно на полу
+        mesh.userData.hingePivot.rotation.x = THREE.MathUtils.degToRad(pitchDeg); 
+      } else {
+        // Стопа плашмя или полностью в воздухе - сбрасываем компенсацию
+        mesh.position.y = -0.5;
+        mesh.position.z = 0.2;
+        mesh.userData.hingePivot.rotation.x = 0;
+      }
+    }
+
     function renderFrame(state) {
       let lTot = state.calValues['L_Red'] + state.calValues['L_Yel'] + state.calValues['L_Blu'];
       let rTot = state.calValues['R_Red'] + state.calValues['R_Yel'] + state.calValues['R_Blu'];
-      let tTot = lTot + rTot;
 
-      if (tTot > 20) { 
-        document.getElementById('left-pct').innerText = Math.round((lTot / tTot) * 100) + '%';
-        document.getElementById('right-pct').innerText = Math.round((rTot / tTot) * 100) + '%';
+      if ((lTot + rTot) > 20) { 
+        document.getElementById('left-pct').innerText = Math.round((lTot / (lTot + rTot)) * 100) + '%';
+        document.getElementById('right-pct').innerText = Math.round((rTot / (lTot + rTot)) * 100) + '%';
       } else { document.getElementById('left-pct').innerText = '0%'; document.getElementById('right-pct').innerText = '0%'; }
 
       updateBtnDisplay('L_Red', state.calValues['L_Red'], lTot);
@@ -309,22 +376,20 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // ИНВЕРСИЯ ДОБАВЛЕНА ЗДЕСЬ: минус перед dL_Pitch и dR_Pitch
+      // Применяем математику сдвига (Центровка)
       let dL_Pitch = state.angles['L_Pitch'] - baselineAngles['L_Pitch'];
       let dL_Roll = state.angles['L_Roll'] - baselineAngles['L_Roll'];
       let dL_Yaw = state.angles['L_Yaw'] - baselineAngles['L_Yaw'];
+      let l_frontP = state.calValues['L_Yel'] + state.calValues['L_Blu'];
 
       let dR_Pitch = state.angles['R_Pitch'] - baselineAngles['R_Pitch'];
       let dR_Roll = state.angles['R_Roll'] - baselineAngles['R_Roll'];
       let dR_Yaw = state.angles['R_Yaw'] - baselineAngles['R_Yaw'];
+      let r_frontP = state.calValues['R_Yel'] + state.calValues['R_Blu'];
 
-      meshLeftFoot.rotation.x = THREE.MathUtils.degToRad(-dL_Pitch);
-      meshLeftFoot.rotation.y = baseOutwardAngle + THREE.MathUtils.degToRad(dL_Yaw);
-      meshLeftFoot.rotation.z = THREE.MathUtils.degToRad(-dL_Roll);
-
-      meshRightFoot.rotation.x = THREE.MathUtils.degToRad(-dR_Pitch);
-      meshRightFoot.rotation.y = -baseOutwardAngle + THREE.MathUtils.degToRad(dR_Yaw);
-      meshRightFoot.rotation.z = THREE.MathUtils.degToRad(-dR_Roll);
+      // Вызываем умную кинематику для левой и правой стопы
+      applyKinematics(meshLeftFoot, dL_Pitch, dL_Roll, dL_Yaw, l_frontP, false);
+      applyKinematics(meshRightFoot, dR_Pitch, dR_Roll, dR_Yaw, r_frontP, true);
     }
 
     const btnRecord = document.getElementById('btn-record'); const btnStop = document.getElementById('btn-stop'); const btnPlay = document.getElementById('btn-play');
@@ -363,12 +428,25 @@
                   if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
 
                   currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
+                  currentState.sensorAngles[sensor] = { p: pitch, r: roll, y: yaw };
 
-                  if (sensor === 'L_Red') { currentState.angles['L_Pitch'] = pitch; currentState.angles['L_Roll'] = roll; }
-                  if (sensor === 'R_Red') { currentState.angles['R_Pitch'] = pitch; currentState.angles['R_Roll'] = roll; }
-
-                  if (sensor === 'L_Yel') { currentState.angles['L_Yaw'] = yaw; }
-                  if (sensor === 'R_Yel') { currentState.angles['R_Yaw'] = yaw; }
+                  // БИОМЕХАНИКА: Подъем (Pitch) берется только с пятки. Крен (Roll) - среднее с носка.
+                  if (sensor.startsWith('L_')) {
+                    currentState.angles['L_Pitch'] = currentState.sensorAngles['L_Red'].p;
+                    let rSum = 0, rCnt = 0;
+                    if (document.getElementById('btn-L_Yel').classList.contains('connected')) { rSum += currentState.sensorAngles['L_Yel'].r; rCnt++; }
+                    if (document.getElementById('btn-L_Blu').classList.contains('connected')) { rSum += currentState.sensorAngles['L_Blu'].r; rCnt++; }
+                    currentState.angles['L_Roll'] = rCnt > 0 ? rSum / rCnt : currentState.sensorAngles['L_Red'].r;
+                    currentState.angles['L_Yaw'] = currentState.sensorAngles['L_Red'].y;
+                  }
+                  if (sensor.startsWith('R_')) {
+                    currentState.angles['R_Pitch'] = currentState.sensorAngles['R_Red'].p;
+                    let rSum = 0, rCnt = 0;
+                    if (document.getElementById('btn-R_Yel').classList.contains('connected')) { rSum += currentState.sensorAngles['R_Yel'].r; rCnt++; }
+                    if (document.getElementById('btn-R_Blu').classList.contains('connected')) { rSum += currentState.sensorAngles['R_Blu'].r; rCnt++; }
+                    currentState.angles['R_Roll'] = rCnt > 0 ? rSum / rCnt : currentState.sensorAngles['R_Red'].r;
+                    currentState.angles['R_Yaw'] = currentState.sensorAngles['R_Red'].y;
+                  }
                 }
               }
               buffers[id] = dataLines[dataLines.length - 1];
