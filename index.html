@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Живой Сустав и Кинематика</title>
+  <title>Подометрия PRO - Точная Калибровка и Кинематика</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,7 +27,7 @@
     .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: ПОЛЗУНОК + КНОПКА ЦЕНТРОВКИ */
+    /* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ */
     .center-controls {
       position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%);
       display: flex; flex-direction: column; align-items: center; gap: 25px;
@@ -99,7 +99,6 @@
   <div class="workspace" id="workspace-container">
     <div id="canvas-3d"></div>
     
-    <!-- Центральная консоль управления (Ползунок высоты + Кнопка калибровки) -->
     <div class="center-controls">
       <input type="range" id="camera-angle-slider" class="vertical-slider" min="1.5" max="6.5" step="0.2" value="3.5">
       <button id="btn-tare" class="btn-tare" title="Центровка 3D">🎯</button>
@@ -123,7 +122,28 @@
   </div>
 
   <script>
-    const CALIBRATION = { 'L_Red': 1.408, 'L_Yel': 6.667, 'L_Blu': 0.840, 'R_Red': 3.125, 'R_Yel': 0.556, 'R_Blu': 1.786 };
+    // ==========================================
+    // ИСПРАВЛЕНИЕ НАПРАВЛЕНИЯ (Реверс левой пятки)
+    // ==========================================
+    const SENSOR_DIR = {
+        'L_Pitch': -1, // Умножаем на -1, чтобы левая нога поднималась вверх, а не опускалась вниз
+        'L_Roll': 1,
+        'R_Pitch': 1,  
+        'R_Roll': 1
+    };
+
+    // ==========================================
+    // ИДЕАЛЬНАЯ КАЛИБРОВКА ПО ЭТАЛОНУ 5 КГ
+    // ==========================================
+    const CALIBRATION = { 
+        'L_Red': 1.389, 
+        'L_Yel': 1.111, 
+        'L_Blu': 0.917, 
+        'R_Red': 2.326, 
+        'R_Yel': 0.806, 
+        'R_Blu': 2.439 
+    };
+    
     let currentState = { 
       calValues: { 'L_Red':0, 'L_Yel':0, 'L_Blu':0, 'R_Red':0, 'R_Yel':0, 'R_Blu':0 }, 
       sensorAngles: {
@@ -165,10 +185,8 @@
 
     const uiAnchors = [];
 
-    // Константы геометрии
-    const HINGE_Y = 3.6; // Ось виртуального сустава (плюсна)
+    const HINGE_Y = 3.6; 
     const SCALE = 1.2;
-    const HINGE_DIST = HINGE_Y * SCALE;
 
     function createAnatomicFootMesh(isLeft) {
       const footGroup = new THREE.Group();
@@ -177,20 +195,18 @@
       const material = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.9, shininess: 40 });
       const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 };
 
-      // 1. ОСНОВНАЯ СТОПА (От пятки до виртуального сустава)
       const heelShape = new THREE.Shape();
       heelShape.moveTo(0, -1.1); 
       heelShape.bezierCurveTo(sign * -0.45, -1.1, sign * -0.55, -0.2, sign * -0.55, 0.8);  
-      heelShape.bezierCurveTo(sign * -0.55, 2.2, sign * -1.3, 3.4, sign * -1.35, 3.65); // Расширение к суставу
-      heelShape.lineTo(sign * 1.0, 3.65); // Срез шарнира
+      heelShape.bezierCurveTo(sign * -0.55, 2.2, sign * -1.3, 3.4, sign * -1.35, 3.65); 
+      heelShape.lineTo(sign * 1.0, 3.65); 
       heelShape.bezierCurveTo(sign * 1.0, 2.8, sign * 0.55, 2.2, sign * 0.55, 0.8);    
       heelShape.bezierCurveTo(sign * 0.55, -0.2, sign * 0.45, -1.1, 0, -1.1);             
       
       const heelMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(heelShape, extrudeSettings), material);
 
-      // 2. ПАЛЬЦЫ (Подвижная часть, прикрепленная к шарниру)
       const toeShape = new THREE.Shape();
-      toeShape.moveTo(sign * -1.25, -0.05); // Старт относительно сустава
+      toeShape.moveTo(sign * -1.25, -0.05); 
       toeShape.bezierCurveTo(sign * -1.2, 0.4, sign * -1.2, 0.9, sign * -1.2, 0.9); 
       toeShape.bezierCurveTo(sign * -0.7, 1.8, sign * 0.7, 1.8, sign * 1.2, 0.9); 
       toeShape.bezierCurveTo(sign * 1.2, 0.5, sign * 1.05, 0.0, sign * 1.0, -0.05); 
@@ -211,11 +227,9 @@
         toeMesh.add(new THREE.Mesh(new THREE.ExtrudeGeometry(toeShapeC, extrudeSettings), material));
       });
 
-      // СОБИРАЕМ КИНЕМАТИКУ
       const heelGroup = new THREE.Group();
       heelGroup.add(heelMesh);
 
-      // Виртуальный шарнир
       const hingePivot = new THREE.Group();
       hingePivot.position.set(0, HINGE_Y, 0); 
       hingePivot.add(toeMesh);
@@ -228,7 +242,6 @@
         const anchor = new THREE.Object3D();
         anchor.position.set(x, y, 0.15); 
         anchor.userData = { btnId: 'btn-' + id };
-        // Датчики жестко крепятся к пятке/плюсне, до шарнира сгиба пальцев!
         heelGroup.add(anchor);
         uiAnchors.push(anchor);
       }
@@ -247,7 +260,6 @@
       wrapper.scale.set(SCALE, SCALE, SCALE); 
       wrapper.add(footGroup);
       
-      // Сохраняем ссылку на шарнир для анимации
       wrapper.userData = { hingePivot: hingePivot };
       return wrapper;
     }
@@ -256,7 +268,6 @@
     const meshRightFoot = createAnatomicFootMesh(false);
     
     const baseOutwardAngle = Math.PI * 0.08;
-    // Стартовая позиция по Y опущена, чтобы вместить подъем пятки
     meshLeftFoot.position.set(-1.7, -0.5, 0.2); 
     meshRightFoot.position.set(1.7, -0.5, 0.2); 
 
@@ -325,32 +336,23 @@
       }
     }
 
-    // МАГИЯ КИНЕМАТИКИ: Подъем пятки + сгибание пальцев
+    // ИСПРАВЛЕННАЯ КИНЕМАТИКА (жесткая фиксация высоты)
     function applyKinematics(mesh, pitchDeg, rollDeg, yawDeg, frontPressure, isRight) {
       let pitchRad = THREE.MathUtils.degToRad(-pitchDeg); 
-      let isHeelUp = pitchDeg > 3; // Если пятка поднята на >3 градуса
+      let isHeelUp = pitchDeg > 3; 
 
-      // Поворачиваем всю стопу вокруг оси пятки
       mesh.rotation.x = pitchRad;
       mesh.rotation.y = (isRight ? -baseOutwardAngle : baseOutwardAngle) + THREE.MathUtils.degToRad(yawDeg);
       mesh.rotation.z = THREE.MathUtils.degToRad(-rollDeg);
 
-      // Если пятка в воздухе, а пальцы упираются в пол (динамическая опора)
+      // Жестко фиксируем позицию Y, чтобы модель никогда не улетала вверх
+      mesh.position.y = -0.5;
+      mesh.position.z = 0.2;
+
+      // Выгибаем пальцы, если пятка в воздухе, а носок опирается на землю
       if (isHeelUp && frontPressure > 0) {
-        // 1. Вычисляем, насколько глубоко шарнир "провалился" под землю из-за наклона
-        let dropY = Math.abs(HINGE_DIST * Math.sin(pitchRad));
-        let pullZ = HINGE_DIST - (HINGE_DIST * Math.cos(pitchRad));
-        
-        // 2. Компенсируем этот провал, поднимая всю стопу вверх по дуге!
-        mesh.position.y = -0.5 + dropY;
-        mesh.position.z = 0.2 - pullZ;
-        
-        // 3. Выгибаем пальцы в обратную сторону, чтобы они остались лежать ровно на полу
         mesh.userData.hingePivot.rotation.x = THREE.MathUtils.degToRad(pitchDeg); 
       } else {
-        // Стопа плашмя или полностью в воздухе - сбрасываем компенсацию
-        mesh.position.y = -0.5;
-        mesh.position.z = 0.2;
         mesh.userData.hingePivot.rotation.x = 0;
       }
     }
@@ -376,18 +378,17 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Применяем математику сдвига (Центровка)
-      let dL_Pitch = state.angles['L_Pitch'] - baselineAngles['L_Pitch'];
-      let dL_Roll = state.angles['L_Roll'] - baselineAngles['L_Roll'];
-      let dL_Yaw = state.angles['L_Yaw'] - baselineAngles['L_Yaw'];
+      // Применяем математику сдвига (Центровка) + НАСТРОЙКИ ИНВЕРСИИ (SENSOR_DIR)
+      let dL_Pitch = (state.angles['L_Pitch'] - baselineAngles['L_Pitch']) * SENSOR_DIR['L_Pitch'];
+      let dL_Roll = (state.angles['L_Roll'] - baselineAngles['L_Roll']) * SENSOR_DIR['L_Roll'];
+      let dL_Yaw = (state.angles['L_Yaw'] - baselineAngles['L_Yaw']); 
       let l_frontP = state.calValues['L_Yel'] + state.calValues['L_Blu'];
 
-      let dR_Pitch = state.angles['R_Pitch'] - baselineAngles['R_Pitch'];
-      let dR_Roll = state.angles['R_Roll'] - baselineAngles['R_Roll'];
-      let dR_Yaw = state.angles['R_Yaw'] - baselineAngles['R_Yaw'];
+      let dR_Pitch = (state.angles['R_Pitch'] - baselineAngles['R_Pitch']) * SENSOR_DIR['R_Pitch'];
+      let dR_Roll = (state.angles['R_Roll'] - baselineAngles['R_Roll']) * SENSOR_DIR['R_Roll'];
+      let dR_Yaw = (state.angles['R_Yaw'] - baselineAngles['R_Yaw']);
       let r_frontP = state.calValues['R_Yel'] + state.calValues['R_Blu'];
 
-      // Вызываем умную кинематику для левой и правой стопы
       applyKinematics(meshLeftFoot, dL_Pitch, dL_Roll, dL_Yaw, l_frontP, false);
       applyKinematics(meshRightFoot, dR_Pitch, dR_Roll, dR_Yaw, r_frontP, true);
     }
@@ -427,10 +428,10 @@
 
                   if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
 
+                  // Умножаем сырые показания давления на новые калибровочные коэффициенты
                   currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
                   currentState.sensorAngles[sensor] = { p: pitch, r: roll, y: yaw };
 
-                  // БИОМЕХАНИКА: Подъем (Pitch) берется только с пятки. Крен (Roll) - среднее с носка.
                   if (sensor.startsWith('L_')) {
                     currentState.angles['L_Pitch'] = currentState.sensorAngles['L_Red'].p;
                     let rSum = 0, rCnt = 0;
