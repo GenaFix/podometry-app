@@ -3,51 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Адаптивный Дизайн (iPad)</title>
+  <title>Подометрия PRO - Фикс Экрана iPad</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
   <style>
-    /* ПЕРЕХОД НА FLEXBOX: Приложение занимает минимум 100% высоты экрана */
-    html { height: 100%; box-sizing: border-box; }
-    *, *:before, *:after { box-sizing: inherit; }
-    body { 
+    /* ЖЕСТКИЕ ОГРАНИЧЕНИЯ ЭКРАНА */
+    html, body { 
       background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; 
-      margin: 0; padding: 10px; overflow-x: hidden;
-      min-height: 100vh; display: flex; flex-direction: column; 
+      margin: 0; padding: 0; 
+      height: 100%; height: 100dvh; width: 100%; 
+      overflow: hidden; /* Строгий запрет на прокрутку */
     }
     
-    .recorder-panel { flex-shrink: 0; background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .app-wrapper {
+      display: flex; flex-direction: column;
+      height: 100%; padding: 10px; padding-bottom: 20px;
+      box-sizing: border-box;
+    }
+    
+    /* ФИКСИРОВАННЫЕ ПАНЕЛИ */
+    .recorder-panel { flex: 0 0 auto; background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 8px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
     .recorder-controls { display: flex; justify-content: space-between; gap: 10px; }
     .btn-rec { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
     #btn-record { background: #ff3b30; } #btn-stop { background: #333; color: #888; } #btn-play { background: #34c759; }
     .timeline { width: 100%; margin: 0; }
     .status-badge { text-align: center; font-size: 11px; font-weight: bold; font-family: monospace; color: #ffcc00; }
 
-    .balance-banner { flex-shrink: 0; background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 8px; text-align: center; margin-bottom: 10px; }
+    .balance-banner { flex: 0 0 auto; background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 6px; text-align: center; margin-bottom: 8px; }
     .balance-title { font-size: 10px; color: #888; margin-bottom: 3px; font-weight: bold; text-transform: uppercase; }
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* РАБОЧАЯ ЗОНА: Гибкая высота */
+    /* РАБОЧАЯ 3D ЗОНА (Занимает 45% свободного места) */
     .workspace { 
-      flex: 0 0 35vh; /* Занимает 35% от высоты экрана */
-      min-height: 260px; /* Но не меньше 260px для телефонов */
-      position: relative; width: 100%; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; 
+      flex: 1 1 45%; 
+      min-height: 150px;
+      position: relative; width: 100%; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 8px; overflow: hidden; 
     }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
-    /* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ */
     .center-controls {
       position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%);
-      display: flex; flex-direction: column; align-items: center; gap: 25px;
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
       z-index: 25; pointer-events: none;
     }
     
     .vertical-slider {
       writing-mode: vertical-lr; direction: rtl;
-      width: 6px; height: 110px; accent-color: #0a84ff;
+      width: 6px; height: 100px; accent-color: #0a84ff;
       background: rgba(255,255,255,0.1); border-radius: 3px;
       pointer-events: auto; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;
     }
@@ -62,7 +67,6 @@
     }
     .btn-tare:active { background: #0a84ff; transform: scale(0.9); }
 
-    /* Кнопки датчиков */
     .sensor-btn { 
       position: absolute; width: 38px; height: 38px; border-radius: 50%; 
       border: 2px solid rgba(255,255,255,0.4); color: white; 
@@ -72,73 +76,83 @@
       font-family: monospace; line-height: 1.0;
       pointer-events: auto;
     }
-    
     .sensor-btn .val { font-size: 10px; font-weight: bold; }
     .sensor-btn .pct { font-size: 7px; opacity: 0.9; }
     .sensor-btn.disconnected { font-size: 9px; font-weight: bold; }
-
     #btn-L_Red, #btn-R_Red { background: #ff3b30; }
     #btn-L_Yel, #btn-R_Yel { background: #ffcc00; color: #000; }
     #btn-L_Blu, #btn-R_Blu { background: #0a84ff; }
-    
     .sensor-btn:active { transform: translate(-50%, -50%) scale(0.9); }
     .connected { border-color: #34c759 !important; box-shadow: 0 0 12px rgba(52,199,89,0.9); }
 
-    /* ГРАФИКИ: Теперь они забирают всё оставшееся место */
-    .chart-container { 
-      flex: 1; /* Растягивается на доступную высоту */
-      display: flex; flex-direction: column; 
-      min-height: 100px; margin-bottom: 8px; 
+    /* ЗОНА ГРАФИКОВ (Занимает оставшиеся 55% места) */
+    .charts-area {
+      flex: 1 1 55%; 
+      display: flex; flex-direction: column; gap: 8px;
     }
-    .chart-header { flex-shrink: 0; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; padding: 0 5px; }
+    .chart-container { 
+      flex: 1 1 50%; 
+      display: flex; flex-direction: column; 
+    }
+    .chart-header { flex: 0 0 auto; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
+    
+    /* Жесткий контейнер для защиты Flexbox от разрывания Canvas-ом */
+    .canvas-wrapper {
+      flex: 1 1 auto;
+      position: relative;
+      width: 100%;
+    }
     canvas.chart-canvas { 
-      flex: 1; /* Растягивает сам canvas внутри контейнера */
-      width: 100%; min-height: 0; 
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background: #1c1c1e; border-radius: 8px; border: 1px solid #333; 
     }
   </style>
 </head>
 <body>
 
-  <div class="recorder-panel">
-    <div class="status-badge" id="rec-status">РЕЖИМ: LIVE (РЕАЛЬНОЕ ВРЕМЯ)</div>
-    <div class="recorder-controls">
-      <button id="btn-record" class="btn-rec">⏺ ЗАПИСЬ</button>
-      <button id="btn-stop" class="btn-rec">⏹ СТОП</button>
-      <button id="btn-play" class="btn-rec">▶ ПЛЕЕР</button>
-    </div>
-    <input type="range" id="timeline" class="timeline" min="0" max="0" value="0" disabled>
-  </div>
-
-  <div class="balance-banner">
-    <div class="balance-title">Глобальное распределение</div>
-    <div class="balance-values">ЛЕВ: <span id="left-pct">0%</span> | ПРАВ: <span id="right-pct">0%</span></div>
-  </div>
-
-  <div class="workspace" id="workspace-container">
-    <div id="canvas-3d"></div>
-    
-    <div class="center-controls">
-      <input type="range" id="camera-angle-slider" class="vertical-slider" min="1.5" max="6.5" step="0.2" value="3.5">
-      <button id="btn-tare" class="btn-tare" title="Центровка 3D">🎯</button>
+  <div class="app-wrapper">
+    <div class="recorder-panel">
+      <div class="status-badge" id="rec-status">РЕЖИМ: LIVE (РЕАЛЬНОЕ ВРЕМЯ)</div>
+      <div class="recorder-controls">
+        <button id="btn-record" class="btn-rec">⏺ ЗАПИСЬ</button>
+        <button id="btn-stop" class="btn-rec">⏹ СТОП</button>
+        <button id="btn-play" class="btn-rec">▶ ПЛЕЕР</button>
+      </div>
+      <input type="range" id="timeline" class="timeline" min="0" max="0" value="0" disabled>
     </div>
 
-    <div id="btn-L_Red" class="sensor-btn disconnected">L_Red</div>
-    <div id="btn-L_Yel" class="sensor-btn disconnected">L_Yel</div>
-    <div id="btn-L_Blu" class="sensor-btn disconnected">L_Blu</div>
-    <div id="btn-R_Red" class="sensor-btn disconnected">R_Red</div>
-    <div id="btn-R_Yel" class="sensor-btn disconnected">R_Yel</div>
-    <div id="btn-R_Blu" class="sensor-btn disconnected">R_Blu</div>
-  </div>
+    <div class="balance-banner">
+      <div class="balance-title">Глобальное распределение</div>
+      <div class="balance-values">ЛЕВ: <span id="left-pct">0%</span> | ПРАВ: <span id="right-pct">0%</span></div>
+    </div>
 
-  <div class="chart-container">
-    <div class="chart-header"><span>ЛЕВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-L_Red" style="color:#ff3b30">0</span> <span id="val-L_Yel" style="color:#ffcc00">0</span> <span id="val-L_Blu" style="color:#0a84ff">0</span></div></div>
-    <canvas id="chart-left" class="chart-canvas"></canvas>
-  </div>
-  <div class="chart-container" style="margin-bottom: 0;">
-    <div class="chart-header"><span>ПРАВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-R_Red" style="color:#ff3b30">0</span> <span id="val-R_Yel" style="color:#ffcc00">0</span> <span id="val-R_Blu" style="color:#0a84ff">0</span></div></div>
-    <canvas id="chart-right" class="chart-canvas"></canvas>
+    <div class="workspace" id="workspace-container">
+      <div id="canvas-3d"></div>
+      
+      <div class="center-controls">
+        <input type="range" id="camera-angle-slider" class="vertical-slider" min="1.5" max="6.5" step="0.2" value="3.5">
+        <button id="btn-tare" class="btn-tare" title="Центровка 3D">🎯</button>
+      </div>
+
+      <div id="btn-L_Red" class="sensor-btn disconnected">L_Red</div>
+      <div id="btn-L_Yel" class="sensor-btn disconnected">L_Yel</div>
+      <div id="btn-L_Blu" class="sensor-btn disconnected">L_Blu</div>
+      <div id="btn-R_Red" class="sensor-btn disconnected">R_Red</div>
+      <div id="btn-R_Yel" class="sensor-btn disconnected">R_Yel</div>
+      <div id="btn-R_Blu" class="sensor-btn disconnected">R_Blu</div>
+    </div>
+
+    <div class="charts-area">
+      <div class="chart-container">
+        <div class="chart-header"><span>ЛЕВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-L_Red" style="color:#ff3b30">0</span> <span id="val-L_Yel" style="color:#ffcc00">0</span> <span id="val-L_Blu" style="color:#0a84ff">0</span></div></div>
+        <div class="canvas-wrapper"><canvas id="chart-left" class="chart-canvas"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-header"><span>ПРАВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-R_Red" style="color:#ff3b30">0</span> <span id="val-R_Yel" style="color:#ffcc00">0</span> <span id="val-R_Blu" style="color:#0a84ff">0</span></div></div>
+        <div class="canvas-wrapper"><canvas id="chart-right" class="chart-canvas"></canvas></div>
+      </div>
+    </div>
   </div>
 
   <script>
