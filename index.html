@@ -3,28 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Подометрия PRO - Точная Калибровка и Кинематика</title>
+  <title>Подометрия PRO - Адаптивный Дизайн (iPad)</title>
   
   <script src="https://cdn.jsdelivr.net/npm/smoothie@1.36.1/smoothie.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
   <style>
-    body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
+    /* ПЕРЕХОД НА FLEXBOX: Приложение занимает минимум 100% высоты экрана */
+    html { height: 100%; box-sizing: border-box; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body { 
+      background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; 
+      margin: 0; padding: 10px; overflow-x: hidden;
+      min-height: 100vh; display: flex; flex-direction: column; 
+    }
     
-    .recorder-panel { background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .recorder-panel { flex-shrink: 0; background: #1c1c1e; border: 2px solid #ffcc00; border-radius: 12px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
     .recorder-controls { display: flex; justify-content: space-between; gap: 10px; }
     .btn-rec { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
     #btn-record { background: #ff3b30; } #btn-stop { background: #333; color: #888; } #btn-play { background: #34c759; }
     .timeline { width: 100%; margin: 0; }
     .status-badge { text-align: center; font-size: 11px; font-weight: bold; font-family: monospace; color: #ffcc00; }
 
-    .balance-banner { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 8px; text-align: center; margin-bottom: 10px; }
+    .balance-banner { flex-shrink: 0; background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 8px; text-align: center; margin-bottom: 10px; }
     .balance-title { font-size: 10px; color: #888; margin-bottom: 3px; font-weight: bold; text-transform: uppercase; }
     .balance-values { font-size: 18px; font-weight: bold; }
     #left-pct, #right-pct { display: inline-block; width: 55px; font-family: monospace; text-align: left; }
     
-    /* РАБОЧАЯ ЗОНА */
-    .workspace { position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; }
+    /* РАБОЧАЯ ЗОНА: Гибкая высота */
+    .workspace { 
+      flex: 0 0 35vh; /* Занимает 35% от высоты экрана */
+      min-height: 260px; /* Но не меньше 260px для телефонов */
+      position: relative; width: 100%; background: #000; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; overflow: hidden; 
+    }
     #canvas-3d { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     
     /* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ */
@@ -73,10 +84,19 @@
     .sensor-btn:active { transform: translate(-50%, -50%) scale(0.9); }
     .connected { border-color: #34c759 !important; box-shadow: 0 0 12px rgba(52,199,89,0.9); }
 
-    .chart-container { margin-bottom: 8px; }
-    .chart-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; padding: 0 5px; }
+    /* ГРАФИКИ: Теперь они забирают всё оставшееся место */
+    .chart-container { 
+      flex: 1; /* Растягивается на доступную высоту */
+      display: flex; flex-direction: column; 
+      min-height: 100px; margin-bottom: 8px; 
+    }
+    .chart-header { flex-shrink: 0; display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; padding: 0 5px; }
     .chart-values span { font-weight: bold; font-size: 13px; font-family: monospace; display: inline-block; width: 30px; text-align: right; }
-    canvas.chart-canvas { width: 100%; height: 80px; background: #1c1c1e; border-radius: 8px; border: 1px solid #333; }
+    canvas.chart-canvas { 
+      flex: 1; /* Растягивает сам canvas внутри контейнера */
+      width: 100%; min-height: 0; 
+      background: #1c1c1e; border-radius: 8px; border: 1px solid #333; 
+    }
   </style>
 </head>
 <body>
@@ -116,25 +136,19 @@
     <div class="chart-header"><span>ЛЕВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-L_Red" style="color:#ff3b30">0</span> <span id="val-L_Yel" style="color:#ffcc00">0</span> <span id="val-L_Blu" style="color:#0a84ff">0</span></div></div>
     <canvas id="chart-left" class="chart-canvas"></canvas>
   </div>
-  <div class="chart-container">
+  <div class="chart-container" style="margin-bottom: 0;">
     <div class="chart-header"><span>ПРАВАЯ (ДИНАМИКА)</span><div class="chart-values"><span id="val-R_Red" style="color:#ff3b30">0</span> <span id="val-R_Yel" style="color:#ffcc00">0</span> <span id="val-R_Blu" style="color:#0a84ff">0</span></div></div>
     <canvas id="chart-right" class="chart-canvas"></canvas>
   </div>
 
   <script>
-    // ==========================================
-    // ИСПРАВЛЕНИЕ НАПРАВЛЕНИЯ (Реверс левой пятки)
-    // ==========================================
     const SENSOR_DIR = {
-        'L_Pitch': -1, // Умножаем на -1, чтобы левая нога поднималась вверх, а не опускалась вниз
+        'L_Pitch': -1, 
         'L_Roll': 1,
         'R_Pitch': 1,  
         'R_Roll': 1
     };
 
-    // ==========================================
-    // ИДЕАЛЬНАЯ КАЛИБРОВКА ПО ЭТАЛОНУ 5 КГ
-    // ==========================================
     const CALIBRATION = { 
         'L_Red': 1.389, 
         'L_Yel': 1.111, 
@@ -156,7 +170,6 @@
     let baselineAngles = { 'L_Pitch':0, 'L_Roll':0, 'L_Yaw':0, 'R_Pitch':0, 'R_Roll':0, 'R_Yaw':0 };
     let recordBuffer = []; let isRecording = false; let isPlaying = false;
 
-    // Сброс положения (Центровка)
     document.getElementById('btn-tare').onclick = () => {
       baselineAngles = { ...currentState.angles };
       renderFrame(currentState);
@@ -336,7 +349,6 @@
       }
     }
 
-    // ИСПРАВЛЕННАЯ КИНЕМАТИКА (жесткая фиксация высоты)
     function applyKinematics(mesh, pitchDeg, rollDeg, yawDeg, frontPressure, isRight) {
       let pitchRad = THREE.MathUtils.degToRad(-pitchDeg); 
       let isHeelUp = pitchDeg > 3; 
@@ -345,11 +357,9 @@
       mesh.rotation.y = (isRight ? -baseOutwardAngle : baseOutwardAngle) + THREE.MathUtils.degToRad(yawDeg);
       mesh.rotation.z = THREE.MathUtils.degToRad(-rollDeg);
 
-      // Жестко фиксируем позицию Y, чтобы модель никогда не улетала вверх
       mesh.position.y = -0.5;
       mesh.position.z = 0.2;
 
-      // Выгибаем пальцы, если пятка в воздухе, а носок опирается на землю
       if (isHeelUp && frontPressure > 0) {
         mesh.userData.hingePivot.rotation.x = THREE.MathUtils.degToRad(pitchDeg); 
       } else {
@@ -378,7 +388,6 @@
         if(!isPlaying) lines[s].append(new Date().getTime(), state.calValues[s]);
       });
 
-      // Применяем математику сдвига (Центровка) + НАСТРОЙКИ ИНВЕРСИИ (SENSOR_DIR)
       let dL_Pitch = (state.angles['L_Pitch'] - baselineAngles['L_Pitch']) * SENSOR_DIR['L_Pitch'];
       let dL_Roll = (state.angles['L_Roll'] - baselineAngles['L_Roll']) * SENSOR_DIR['L_Roll'];
       let dL_Yaw = (state.angles['L_Yaw'] - baselineAngles['L_Yaw']); 
@@ -428,7 +437,6 @@
 
                   if (isNaN(rawFsr) || isNaN(pitch) || isNaN(roll)) continue;
 
-                  // Умножаем сырые показания давления на новые калибровочные коэффициенты
                   currentState.calValues[sensor] = Math.round(rawFsr * CALIBRATION[sensor]);
                   currentState.sensorAngles[sensor] = { p: pitch, r: roll, y: yaw };
 
